@@ -303,5 +303,37 @@ mod tests {
                 i
             );
         }
+
+        let circuit = Circuit::new(
+            4,
+            [
+                Gate::new_and(0, 2),
+                Gate::new_and(1, 2),
+                Gate::new_and(0, 3),
+                Gate::new_and(1, 3),
+                // add a1*b0 + a0*b1
+                Gate::new_xor(5, 6),
+                Gate::new_and(5, 6),
+                // add c(a1*b0 + a0*b1) + a1*b1
+                Gate::new_xor(7, 9),
+                Gate::new_and(7, 9),
+            ],
+            [(4, false), (8, false), (10, false), (11, false)],
+        )
+        .unwrap();
+        for i in 0..16 {
+            let expected = (i & 3) * ((i & 12) >> 2);
+            assert_eq!(
+                vec![
+                    (expected & 1) != 0,
+                    (expected & 2) != 0,
+                    (expected & 4) != 0,
+                    (expected & 8) != 0
+                ],
+                circuit.eval([(i & 1) != 0, (i & 2) != 0, (i & 4) != 0, (i & 8) != 0]),
+                "test {}",
+                i
+            );
+        }
     }
 }
