@@ -156,6 +156,22 @@ where
         last_output
     }
 
+    pub fn eval_to<Out>(&self, gate_outputs: &mut [Out])
+    where
+        Out: BitAnd<Output = Out>
+            + BitOr<Output = Out>
+            + BitXor<Output = Out>
+            + Not<Output = Out>
+            + Default
+            + Clone,
+    {
+        let input_len = usize::try_from(self.input_len).unwrap();
+        assert_eq!(gate_outputs.len(), input_len + self.gates.len());
+        for (i, g) in self.gates.iter().enumerate() {
+            gate_outputs[input_len + i] = g.eval(&gate_outputs);
+        }
+    }
+
     pub fn eval<Out>(&self, inputs: impl IntoIterator<Item = Out>) -> Vec<Out>
     where
         Out: BitAnd<Output = Out>
@@ -166,10 +182,9 @@ where
             + Clone,
     {
         let mut gate_outputs = Vec::from_iter(inputs);
-        gate_outputs.resize(self.gates.len(), Out::default());
-        for (i, g) in self.gates.iter().enumerate() {
-            gate_outputs[usize::try_from(self.input_len).unwrap() + i] = g.eval(&gate_outputs);
-        }
+        let input_len = usize::try_from(self.input_len).unwrap();
+        gate_outputs.resize(input_len + self.gates.len(), Out::default());
+        self.eval_to(&mut gate_outputs);
         self.outputs
             .iter()
             .map(|&(i, n)| {
@@ -261,5 +276,30 @@ mod tests {
             [(3, false), (5, false)]
         )
         .is_none());
+    }
+
+    #[test]
+    fn circuit_eval() {
+        let circuit = Circuit::new(
+            3,
+            [
+                Gate::new_xor(0, 1),
+                Gate::new_xor(2, 3),
+                Gate::new_and(2, 3),
+                Gate::new_and(0, 1),
+                Gate::new_nor(5, 6),
+            ],
+            [(4, false), (7, true)],
+        )
+        .unwrap();
+        for i in 0..8 {
+            let expected = (i & 1) + ((i & 2) >> 1) + ((i & 4) >> 2);
+            assert_eq!(
+                vec![(expected & 1) != 0, (expected & 2) != 0],
+                circuit.eval([(i & 1) != 0, (i & 2) != 0, (i & 4) != 0]),
+                "test {}",
+                i
+            );
+        }
     }
 }
