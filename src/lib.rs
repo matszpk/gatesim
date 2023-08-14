@@ -119,29 +119,29 @@ where
             if output_map[i].2 {
                 write!(
                     f,
-                    "{}:{}{} ",
+                    "{}:{}{}",
                     i,
                     output_map[i].0,
                     if output_map[i].1 { "n" } else { "" }
                 )?;
             } else {
-                write!(f, "{} ", i)?;
+                write!(f, "{}", i)?;
+            }
+            if i + 1 < input_len {
+                write!(f, " ")?;
             }
         }
         for (i, g) in self.gates.iter().enumerate() {
             if output_map[input_len + i].2 {
                 write!(
                     f,
-                    "{}:{}{}",
+                    " {}:{}{}",
                     g,
                     output_map[input_len + i].0,
                     if output_map[input_len + i].1 { "n" } else { "" }
                 )?;
             } else {
-                write!(f, "{}", g)?;
-            }
-            if i + 1 < self.gates.len() {
-                write!(f, " ")?;
+                write!(f, " {}", g)?;
             }
         }
         write!(f, "}}({})", input_len);
