@@ -93,43 +93,57 @@ where
         input_len: T,
         gates: impl IntoIterator<Item = Gate<T>>,
         outputs: impl IntoIterator<Item = (T, bool)>,
-    ) -> Self {
+    ) -> Option<Self> {
         let out = Self {
             input_len,
             gates: Vec::from_iter(gates),
             outputs: Vec::from_iter(outputs),
         };
         // verify
-        assert!(out.verify());
-        out
+        if out.verify() {
+            Some(out)
+        } else {
+            None
+        }
     }
 
+    // verification:
+    // all inputs and gate outputs must be used except output gates.
+    // gate inputs must be different.
+    // at least one output must be a last gate ouput.
     fn verify(&self) -> bool {
         // check inputs and gate outputs
         // gate have input less than its output.
         let input_len = usize::try_from(self.input_len).unwrap();
-        let mut used_inputs = vec![false; input_len];
+        let output_num = input_len + self.gates.len();
+        let mut used_inputs = vec![false; output_num];
         for (i, g) in self.gates.iter().enumerate() {
             let i0 = usize::try_from(g.i0).unwrap();
             let i1 = usize::try_from(g.i1).unwrap();
-            if g.i0 < self.input_len {
-                used_inputs[i0] = true;
-            }
-            if g.i1 < self.input_len {
-                used_inputs[i1] = true;
-            }
-            // check gate inputs
             let cur_index = input_len + i;
+            if i0 == i1 {
+                return false;
+            }
             if i0 >= cur_index || i1 >= cur_index {
                 return false;
             }
+            used_inputs[i0] = true;
+            used_inputs[i1] = true;
+            // check gate inputs
+        }
+        // fill up outputs - ignore gate outputs - they can be unconnected
+        for (o, _) in &self.outputs {
+            let o = usize::try_from(*o).unwrap();
+            if o >= output_num {
+                return false;
+            }
+            used_inputs[o] = true;
         }
         if !used_inputs.into_iter().all(|x| x) {
             return false;
         }
         // check outputs: at least once output must be last gate output.
         let mut last_output = false;
-        let output_num = input_len + self.gates.len();
         for (o, _) in &self.outputs {
             let o = usize::try_from(*o).unwrap();
             if o >= output_num {
@@ -185,5 +199,67 @@ mod tests {
         ] {
             assert_eq!(exp, g.eval(&inputs) & 0b1111);
         }
+    }
+
+    #[test]
+    fn test_circuit_new() {
+        assert!(Circuit::new(2, [Gate::new_xor(0, 1)], [(2, false)]).is_some());
+        assert!(Circuit::new(2, [Gate::new_xor(0, 1)], [(2, true)]).is_some());
+        assert!(Circuit::new(2, [Gate::new_xor(1, 0)], [(2, false)]).is_some());
+        assert!(Circuit::new(2, [Gate::new_xor(0, 1)], [(3, false)]).is_none());
+        assert!(Circuit::new(2, [Gate::new_xor(1, 1)], [(2, false)]).is_none());
+        assert!(Circuit::new(2, [Gate::new_xor(0, 0)], [(2, false)]).is_none());
+        assert!(Circuit::new(2, [Gate::new_xor(0, 1)], [(1, false)]).is_none());
+
+        assert!(
+            Circuit::new(3, [Gate::new_xor(0, 1), Gate::new_xor(2, 3)], [(4, false)]).is_some()
+        );
+        assert!(
+            Circuit::new(3, [Gate::new_xor(0, 1), Gate::new_xor(2, 1)], [(4, false)]).is_none()
+        );
+        assert!(Circuit::new(
+            3,
+            [Gate::new_xor(0, 1), Gate::new_xor(2, 3)],
+            [(3, false), (4, false)]
+        )
+        .is_some());
+        // 3 (gate index 0) and 4 (gate index 1) are outputs - can be unconnected
+        assert!(Circuit::new(
+            3,
+            [Gate::new_xor(0, 1), Gate::new_xor(0, 2)],
+            [(3, false), (4, false)]
+        )
+        .is_some());
+        assert!(Circuit::new(
+            3,
+            [
+                Gate::new_xor(0, 1),
+                Gate::new_xor(1, 2),
+                Gate::new_xor(0, 4)
+            ],
+            [(3, false), (5, false)]
+        )
+        .is_some());
+        // first gate is not connected later
+        assert!(Circuit::new(
+            3,
+            [
+                Gate::new_xor(0, 1),
+                Gate::new_xor(1, 2),
+                Gate::new_xor(0, 4)
+            ],
+            [(5, false)]
+        )
+        .is_none());
+        assert!(Circuit::new(
+            3,
+            [
+                Gate::new_xor(0, 1),
+                Gate::new_xor(2, 2),
+                Gate::new_xor(0, 4)
+            ],
+            [(3, false), (5, false)]
+        )
+        .is_none());
     }
 }
