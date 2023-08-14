@@ -227,7 +227,7 @@ mod tests {
         assert!(Circuit::new(2, [Gate::new_xor(1, 1)], [(2, false)]).is_none());
         assert!(Circuit::new(2, [Gate::new_xor(0, 0)], [(2, false)]).is_none());
         assert!(Circuit::new(2, [Gate::new_xor(0, 1)], [(1, false)]).is_none());
-        
+
         assert!(
             Circuit::new(3, [Gate::new_xor(0, 1), Gate::new_xor(2, 3)], [(4, false)]).is_some()
         );
