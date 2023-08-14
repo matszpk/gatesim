@@ -1,7 +1,8 @@
-use std::cmp::PartialOrd;
+use std::cmp::{Ord, PartialOrd};
 use std::fmt::Debug;
 use std::ops::{BitAnd, BitOr, BitXor, Not};
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum GateFunc {
     And,
     Nor,
@@ -9,13 +10,14 @@ pub enum GateFunc {
     Xor,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Gate<T> {
     pub i0: T,
     pub i1: T,
     pub func: GateFunc,
 }
 
-impl<T> Gate<T> {
+impl<T: Ord> Gate<T> {
     #[inline]
     pub fn new_and(i0: T, i1: T) -> Self {
         Gate {
@@ -84,7 +86,7 @@ pub struct Circuit<T> {
     outputs: Vec<(T, bool)>,
 }
 
-impl<T: Clone + Copy + PartialOrd> Circuit<T>
+impl<T: Clone + Copy + PartialOrd + Ord> Circuit<T>
 where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
@@ -111,6 +113,7 @@ where
     // all inputs and gate outputs must be used except output gates.
     // gate inputs must be different.
     // at least one output must be a last gate ouput.
+    // no gate duplicates.
     fn verify(&self) -> bool {
         // check inputs and gate outputs
         // gate have input less than its output.
@@ -152,6 +155,13 @@ where
             if o == output_num - 1 {
                 last_output = true;
             }
+        }
+        // check duplicates
+        let mut new_gates = self.gates.clone();
+        new_gates.sort();
+        new_gates.dedup();
+        if new_gates.len() != self.gates.len() {
+            return false;
         }
         last_output
     }
@@ -225,6 +235,12 @@ mod tests {
         assert!(Circuit::new(2, [Gate::new_xor(1, 1)], [(2, false)]).is_none());
         assert!(Circuit::new(2, [Gate::new_xor(0, 0)], [(2, false)]).is_none());
         assert!(Circuit::new(2, [Gate::new_xor(0, 1)], [(1, false)]).is_none());
+        assert!(Circuit::new(
+            2,
+            [Gate::new_xor(0, 1), Gate::new_xor(0, 1)],
+            [(2, false), (3, false)]
+        )
+        .is_none());
 
         assert!(
             Circuit::new(3, [Gate::new_xor(0, 1), Gate::new_xor(2, 3)], [(4, false)]).is_some()
