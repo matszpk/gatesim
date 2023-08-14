@@ -1,3 +1,4 @@
+use std::cmp::PartialOrd;
 use std::fmt::Debug;
 use std::ops::{BitAnd, BitOr, BitXor, Not};
 
@@ -83,21 +84,66 @@ pub struct Circuit<T> {
     outputs: Vec<(T, bool)>,
 }
 
-impl<T> Circuit<T> {
-    pub fn new(input_len: T) -> Self {
-        Self {
+impl<T: Clone + Copy + PartialOrd> Circuit<T>
+where
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+{
+    pub fn new(
+        input_len: T,
+        gates: impl IntoIterator<Item = Gate<T>>,
+        outputs: impl IntoIterator<Item = (T, bool)>,
+    ) -> Self {
+        let out = Self {
             input_len,
-            gates: vec![],
-            outputs: vec![],
-        }
+            gates: Vec::from_iter(gates),
+            outputs: Vec::from_iter(outputs),
+        };
+        // verify
+        assert!(out.verify());
+        out
     }
-}
 
-impl<T: Clone + Copy> Circuit<T> {
+    fn verify(&self) -> bool {
+        // check inputs and gate outputs
+        // gate have input less than its output.
+        let input_len = usize::try_from(self.input_len).unwrap();
+        let mut used_inputs = vec![false; input_len];
+        for (i, g) in self.gates.iter().enumerate() {
+            let i0 = usize::try_from(g.i0).unwrap();
+            let i1 = usize::try_from(g.i1).unwrap();
+            if g.i0 < self.input_len {
+                used_inputs[i0] = true;
+            }
+            if g.i1 < self.input_len {
+                used_inputs[i1] = true;
+            }
+            // check gate inputs
+            let cur_index = input_len + i;
+            if i0 >= cur_index || i1 >= cur_index {
+                return false;
+            }
+        }
+        if !used_inputs.into_iter().all(|x| x) {
+            return false;
+        }
+        // check outputs: at least once output must be last gate output.
+        let mut last_output = false;
+        let output_num = input_len + self.gates.len();
+        for (o, _) in &self.outputs {
+            let o = usize::try_from(*o).unwrap();
+            if o >= output_num {
+                return false;
+            }
+            if o == output_num - 1 {
+                last_output = true;
+            }
+        }
+        last_output
+    }
+
     pub fn eval<Out>(&self, inputs: impl IntoIterator<Item = Out>) -> Vec<Out>
     where
-        usize: TryFrom<T>,
-        <usize as TryFrom<T>>::Error: Debug,
         Out: BitAnd<Output = Out>
             + BitOr<Output = Out>
             + BitXor<Output = Out>
