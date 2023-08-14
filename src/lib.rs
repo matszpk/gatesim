@@ -1,8 +1,8 @@
 use std::cmp::{Ord, PartialOrd};
-use std::fmt::Debug;
+use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::{BitAnd, BitOr, BitXor, Not};
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum GateFunc {
     And,
     Nor,
@@ -10,11 +10,28 @@ pub enum GateFunc {
     Xor,
 }
 
+impl Display for GateFunc {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        match self {
+            GateFunc::And => write!(f, "and"),
+            GateFunc::Nor => write!(f, "nor"),
+            GateFunc::Nimpl => write!(f, "nimpl"),
+            GateFunc::Xor => write!(f, "xor"),
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Gate<T> {
     pub i0: T,
     pub i1: T,
     pub func: GateFunc,
+}
+
+impl<T: Debug> Display for Gate<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        write!(f, "{}({:?},{:?})", self.func, self.i0, self.i1)
+    }
 }
 
 impl<T: Ord> Gate<T> {
@@ -84,6 +101,52 @@ pub struct Circuit<T> {
     input_len: T,
     gates: Vec<Gate<T>>,
     outputs: Vec<(T, bool)>,
+}
+
+impl<T: Clone + Copy + Debug> Display for Circuit<T>
+where
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        let input_len = usize::try_from(self.input_len).unwrap();
+        let mut output_map = vec![(0, false, false); input_len + self.gates.len()];
+        write!(f, "{{");
+        for (i, (v, n)) in self.outputs.iter().enumerate() {
+            output_map[usize::try_from(*v).unwrap()] = (i, *n, true);
+        }
+        for i in 0..input_len {
+            if output_map[i].2 {
+                write!(
+                    f,
+                    "{}:{}{} ",
+                    i,
+                    output_map[i].0,
+                    if output_map[i].1 { "n" } else { "" }
+                )?;
+            } else {
+                write!(f, "{} ", i)?;
+            }
+        }
+        for (i, g) in self.gates.iter().enumerate() {
+            if output_map[input_len + i].2 {
+                write!(
+                    f,
+                    "{}:{}{}",
+                    g,
+                    output_map[input_len + i].0,
+                    if output_map[input_len + i].1 { "n" } else { "" }
+                )?;
+            } else {
+                write!(f, "{}", g)?;
+            }
+            if i + 1 < self.gates.len() {
+                write!(f, " ")?;
+            }
+        }
+        write!(f, "}}({})", input_len);
+        Ok(())
+    }
 }
 
 impl<T: Clone + Copy + PartialOrd + Ord> Circuit<T>
@@ -219,6 +282,14 @@ mod tests {
     }
 
     #[test]
+    fn test_gate_display() {
+        assert_eq!("and(0,1)", format!("{}", Gate::new_and(0, 1)));
+        assert_eq!("nor(0,1)", format!("{}", Gate::new_nor(0, 1)));
+        assert_eq!("nimpl(0,1)", format!("{}", Gate::new_nimpl(0, 1)));
+        assert_eq!("xor(0,1)", format!("{}", Gate::new_xor(0, 1)));
+    }
+
+    #[test]
     fn test_circuit_new() {
         assert!(Circuit::new(2, [Gate::new_xor(0, 1)], [(2, false)]).is_some());
         assert!(Circuit::new(2, [Gate::new_xor(0, 1)], [(2, true)]).is_some());
@@ -335,5 +406,61 @@ mod tests {
                 i
             );
         }
+    }
+
+    #[test]
+    fn circuit_display() {
+        assert_eq!(
+            concat!(
+                "{0 1 2 3 and(0,2):0 and(1,2) and(0,3) and(1,3) xor(5,6):1 ",
+                "and(5,6) xor(7,9):2 and(7,9):3}(4)"
+            ),
+            format!(
+                "{}",
+                Circuit::new(
+                    4,
+                    [
+                        Gate::new_and(0, 2),
+                        Gate::new_and(1, 2),
+                        Gate::new_and(0, 3),
+                        Gate::new_and(1, 3),
+                        // add a1*b0 + a0*b1
+                        Gate::new_xor(5, 6),
+                        Gate::new_and(5, 6),
+                        // add c(a1*b0 + a0*b1) + a1*b1
+                        Gate::new_xor(7, 9),
+                        Gate::new_and(7, 9),
+                    ],
+                    [(4, false), (8, false), (10, false), (11, false)],
+                )
+                .unwrap()
+            )
+        );
+        assert_eq!(
+            concat!(
+                "{0 1 2 3 and(0,2):0 and(1,2) and(0,3) and(1,3) xor(5,6):1n ",
+                "and(5,6) xor(7,9):2 and(7,9):3n}(4)"
+            ),
+            format!(
+                "{}",
+                Circuit::new(
+                    4,
+                    [
+                        Gate::new_and(0, 2),
+                        Gate::new_and(1, 2),
+                        Gate::new_and(0, 3),
+                        Gate::new_and(1, 3),
+                        // add a1*b0 + a0*b1
+                        Gate::new_xor(5, 6),
+                        Gate::new_and(5, 6),
+                        // add c(a1*b0 + a0*b1) + a1*b1
+                        Gate::new_xor(7, 9),
+                        Gate::new_and(7, 9),
+                    ],
+                    [(4, false), (8, true), (10, false), (11, true)],
+                )
+                .unwrap()
+            )
+        );
     }
 }
