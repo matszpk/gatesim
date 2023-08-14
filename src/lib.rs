@@ -173,4 +173,17 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_gate() {
+        let inputs = [0b1010, 0b1100];
+        for (g, exp) in [
+            (Gate::new_and(0, 1), 0b1000),
+            (Gate::new_nor(0, 1), 0b0001),
+            (Gate::new_nimpl(0, 1), 0b0010),
+            (Gate::new_xor(0, 1), 0b0110),
+        ] {
+            assert_eq!(exp, g.eval(&inputs) & 0b1111);
+        }
+    }
 }
