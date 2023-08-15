@@ -97,6 +97,7 @@ where
     }
 }
 
+#[derive(Clone, PartialEq, Eq)]
 pub struct Circuit<T> {
     input_len: T,
     gates: Vec<Gate<T>>,
@@ -111,7 +112,7 @@ where
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         let input_len = usize::try_from(self.input_len).unwrap();
         let mut output_map = vec![(0, false, false); input_len + self.gates.len()];
-        write!(f, "{{");
+        write!(f, "{{")?;
         for (i, (v, n)) in self.outputs.iter().enumerate() {
             output_map[usize::try_from(*v).unwrap()] = (i, *n, true);
         }
@@ -144,7 +145,7 @@ where
                 write!(f, " {}", g)?;
             }
         }
-        write!(f, "}}({})", input_len);
+        write!(f, "}}({})", input_len)?;
         Ok(())
     }
 }
