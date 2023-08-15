@@ -21,7 +21,7 @@ impl Display for GateFunc {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Gate<T> {
     pub i0: T,
     pub i1: T,
@@ -97,7 +97,7 @@ where
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Circuit<T> {
     input_len: T,
     gates: Vec<Gate<T>>,
