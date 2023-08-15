@@ -350,6 +350,8 @@ mod tests {
             [(3, false), (5, false)]
         )
         .is_none());
+        assert!(Circuit::new(1, [], [(0, false)]).is_some());
+        assert!(Circuit::new(2, [], [(0, false), (1, true)]).is_some());
     }
 
     #[test]
