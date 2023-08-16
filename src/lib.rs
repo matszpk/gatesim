@@ -104,6 +104,24 @@ pub struct Circuit<T> {
     outputs: Vec<(T, bool)>,
 }
 
+impl<T: Clone + Copy> Circuit<T> {
+    pub fn gates(&self) -> &[Gate<T>] {
+        &self.gates
+    }
+    
+    pub fn outputs(&self) -> &[(T, bool)] {
+        &self.outputs
+    }
+    
+    pub fn input_len(&self) -> T {
+        self.input_len
+    }
+    
+    pub fn len(&self) -> usize {
+        self.gates.len()
+    }
+}
+
 impl<T: Clone + Copy + Debug> Display for Circuit<T>
 where
     usize: TryFrom<T>,
