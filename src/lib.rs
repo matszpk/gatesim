@@ -78,6 +78,23 @@ where
     <usize as TryFrom<T>>::Error: Debug,
 {
     #[inline]
+    pub fn eval_args<Out>(&self, i0: Out, i1: Out) -> Out
+    where
+        Out: BitAnd<Output = Out>
+            + BitOr<Output = Out>
+            + BitXor<Output = Out>
+            + Not<Output = Out>
+            + Clone,
+    {
+        match self.func {
+            GateFunc::And => i0 & i1,
+            GateFunc::Nor => !(i0 | i1),
+            GateFunc::Nimpl => i0 & !i1,
+            GateFunc::Xor => i0 ^ i1,
+        }
+    }
+
+    #[inline]
     pub fn eval<Out>(&self, outputs: &[Out]) -> Out
     where
         Out: BitAnd<Output = Out>
@@ -108,15 +125,15 @@ impl<T: Clone + Copy> Circuit<T> {
     pub fn gates(&self) -> &[Gate<T>] {
         &self.gates
     }
-    
+
     pub fn outputs(&self) -> &[(T, bool)] {
         &self.outputs
     }
-    
+
     pub fn input_len(&self) -> T {
         self.input_len
     }
-    
+
     pub fn len(&self) -> usize {
         self.gates.len()
     }
@@ -297,6 +314,14 @@ mod tests {
             (Gate::new_xor(0, 1), 0b0110),
         ] {
             assert_eq!(exp, g.eval(&inputs) & 0b1111);
+        }
+        for (g, exp) in [
+            (Gate::new_and(0, 1), 0b1000),
+            (Gate::new_nor(0, 1), 0b0001),
+            (Gate::new_nimpl(0, 1), 0b0010),
+            (Gate::new_xor(0, 1), 0b0110),
+        ] {
+            assert_eq!(exp, g.eval_args(0b1010, 0b1100) & 0b1111);
         }
     }
 
