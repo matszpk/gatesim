@@ -244,17 +244,21 @@ where
             return false;
         }
         // check outputs: at least once output must be last gate output.
-        let mut last_output = false;
-        for (o, _) in &self.outputs {
-            let o = usize::try_from(*o).unwrap();
-            if o >= output_num {
-                return false;
+        if !self.outputs.is_empty() && !self.gates.is_empty() {
+            let mut last_output = false;
+            for (o, _) in &self.outputs {
+                let o = usize::try_from(*o).unwrap();
+                if o >= output_num {
+                    return false;
+                }
+                if o == output_num - 1 {
+                    last_output = true;
+                }
             }
-            if o == output_num - 1 {
-                last_output = true;
-            }
+            last_output
+        } else {
+            true
         }
-        last_output
     }
 
     pub fn eval_to<Out>(&self, gate_outputs: &mut [Out])
@@ -395,6 +399,7 @@ mod tests {
         .is_none());
         assert!(Circuit::new(1, [], [(0, false)]).is_some());
         assert!(Circuit::new(2, [], [(0, false), (1, true)]).is_some());
+        assert!(Circuit::new(0, [], []).is_some());
     }
 
     #[test]
