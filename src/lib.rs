@@ -1,8 +1,9 @@
 use std::cmp::{Ord, PartialOrd};
+use std::hash::Hash;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::{BitAnd, BitOr, BitXor, Not};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum GateFunc {
     And,
     Nor,
@@ -21,7 +22,7 @@ impl Display for GateFunc {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Gate<T> {
     pub i0: T,
     pub i1: T,
@@ -210,7 +211,6 @@ where
 
     // verification:
     // all inputs and gate outputs must be used except output gates.
-    // gate inputs must be different.
     // at least one output must be a last gate ouput.
     fn verify(&self) -> bool {
         // check inputs and gate outputs
@@ -222,9 +222,6 @@ where
             let i0 = usize::try_from(g.i0).unwrap();
             let i1 = usize::try_from(g.i1).unwrap();
             let cur_index = input_len + i;
-            if i0 == i1 {
-                return false;
-            }
             if i0 >= cur_index || i1 >= cur_index {
                 return false;
             }
@@ -387,6 +384,7 @@ mod tests {
             [(5, false)]
         )
         .is_none());
+        // accept same inputs
         assert!(Circuit::new(
             3,
             [
@@ -396,7 +394,7 @@ mod tests {
             ],
             [(3, false), (5, false)]
         )
-        .is_none());
+        .is_some());
         assert!(Circuit::new(1, [], [(0, false)]).is_some());
         assert!(Circuit::new(2, [], [(0, false), (1, true)]).is_some());
         assert!(Circuit::new(0, [], []).is_some());
