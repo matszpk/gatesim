@@ -232,7 +232,7 @@ where
     // verification:
     // all inputs and gate outputs must be used except output gates.
     // at least one output must be a last gate ouput.
-    fn verify(&self) -> bool {
+    pub fn verify(&self) -> bool {
         // check inputs and gate outputs
         // gate have input less than its output.
         let input_len = usize::try_from(self.input_len).unwrap();
