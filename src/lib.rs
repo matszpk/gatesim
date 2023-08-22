@@ -1,6 +1,6 @@
 use std::cmp::{Ord, PartialOrd};
-use std::hash::Hash;
 use std::fmt::{self, Debug, Display, Formatter};
+use std::hash::Hash;
 use std::ops::{BitAnd, BitOr, BitXor, Not};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -127,8 +127,16 @@ impl<T: Clone + Copy> Circuit<T> {
         &self.gates
     }
 
+    pub unsafe fn gates_mut(&mut self) -> &mut [Gate<T>] {
+        &mut self.gates
+    }
+
     pub fn outputs(&self) -> &[(T, bool)] {
         &self.outputs
+    }
+
+    pub unsafe fn outputs_mut(&mut self) -> &mut [(T, bool)] {
+        &mut self.outputs
     }
 
     pub fn input_len(&self) -> T {
@@ -191,6 +199,18 @@ where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
+    pub unsafe fn new_unchecked(
+        input_len: T,
+        gates: impl IntoIterator<Item = Gate<T>>,
+        outputs: impl IntoIterator<Item = (T, bool)>,
+    ) -> Self {
+        Self {
+            input_len,
+            gates: Vec::from_iter(gates),
+            outputs: Vec::from_iter(outputs),
+        }
+    }
+
     pub fn new(
         input_len: T,
         gates: impl IntoIterator<Item = Gate<T>>,
