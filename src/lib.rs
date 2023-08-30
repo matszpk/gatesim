@@ -1,4 +1,4 @@
-use std::cmp::{Ord, PartialOrd};
+use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt::{self, Debug, Display, Formatter};
 use std::hash::Hash;
 use std::ops::{BitAnd, BitOr, BitXor, Not};
@@ -22,20 +22,69 @@ impl Display for GateFunc {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Gate<T> {
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, Hash)]
+pub struct Gate<T: Clone + Copy> {
     pub i0: T,
     pub i1: T,
     pub func: GateFunc,
 }
 
-impl<T: Debug> Display for Gate<T> {
+impl<T: Clone + Copy + Debug> Display for Gate<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "{}({:?},{:?})", self.func, self.i0, self.i1)
     }
 }
 
-impl<T: Ord> Gate<T> {
+impl<T: Clone + Copy + PartialOrd> PartialOrd for Gate<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let (selfi0, selfi1, selfrevord) = if let Some(ord) = self.i0.partial_cmp(&self.i1) {
+            if ord == Ordering::Less {
+                (self.i0, self.i1, false)
+            } else {
+                (self.i1, self.i0, true)
+            }
+        } else {
+            (self.i1, self.i0, true)
+        };
+        let (otheri0, otheri1, otherrevord) = if let Some(ord) = other.i0.partial_cmp(&other.i1) {
+            if ord == Ordering::Less {
+                (other.i0, other.i1, false)
+            } else {
+                (other.i1, other.i0, true)
+            }
+        } else {
+            (other.i1, other.i0, true)
+        };
+        if let Some(ord) = selfi1.partial_cmp(&otheri1) {
+            if ord == Ordering::Equal {
+                if let Some(ord) = selfi0.partial_cmp(&otheri0) {
+                    if ord == Ordering::Equal {
+                        if self.func == other.func {
+                            if selfrevord && !otherrevord {
+                                return Some(Ordering::Greater);
+                            } else if !selfrevord && otherrevord {
+                                return Some(Ordering::Less);
+                            } else {
+                                return Some(Ordering::Equal);
+                            }
+                        }
+                        return self.func.partial_cmp(&other.func);
+                    } else {
+                        Some(ord)
+                    }
+                } else {
+                    None
+                }
+            } else {
+                Some(ord)
+            }
+        } else {
+            None
+        }
+    }
+}
+
+impl<T: Clone + Copy + Ord> Gate<T> {
     #[inline]
     pub fn new_and(i0: T, i1: T) -> Self {
         Gate {
@@ -116,7 +165,7 @@ where
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Circuit<T> {
+pub struct Circuit<T: Clone + Copy> {
     input_len: T,
     gates: Vec<Gate<T>>,
     outputs: Vec<(T, bool)>,
@@ -352,6 +401,23 @@ mod tests {
         assert_eq!("nor(0,1)", format!("{}", Gate::new_nor(0, 1)));
         assert_eq!("nimpl(0,1)", format!("{}", Gate::new_nimpl(0, 1)));
         assert_eq!("xor(0,1)", format!("{}", Gate::new_xor(0, 1)));
+    }
+
+    #[test]
+    fn test_gate_partial_ord() {
+        assert!(Gate::new_and(2, 3) == Gate::new_and(2, 3));
+        assert!(Gate::new_and(3, 3) == Gate::new_and(3, 3));
+        assert!(Gate::new_and(2, 3) < Gate::new_and(3, 2));
+        assert!(Gate::new_and(2, 3) < Gate::new_nor(2, 3));
+        assert!(Gate::new_xor(2, 3) > Gate::new_nor(2, 3));
+        assert!(Gate::new_and(2, 4) < Gate::new_and(3, 4));
+        assert!(Gate::new_and(4, 2) < Gate::new_and(3, 4));
+        assert!(Gate::new_and(2, 4) < Gate::new_and(4, 3));
+        assert!(Gate::new_and(4, 2) < Gate::new_and(4, 3));
+        assert!(Gate::new_and(4, 2) > Gate::new_and(4, 1));
+        assert!(Gate::new_and(4, 3) > Gate::new_and(4, 1));
+        assert!(Gate::new_and(3, 4) > Gate::new_and(4, 1));
+        assert!(Gate::new_and(3, 4) > Gate::new_and(1, 4));
     }
 
     #[test]
