@@ -1,5 +1,5 @@
 use std::cmp::{Ord, Ordering, PartialOrd};
-use std::fmt::{self, Debug, Display, Error, Formatter};
+use std::fmt::{self, Debug, Display, Formatter};
 use std::hash::Hash;
 use std::ops::{BitAnd, BitOr, BitXor, Not};
 use std::str::FromStr;
