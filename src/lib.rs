@@ -1,7 +1,20 @@
 use std::cmp::{Ord, Ordering, PartialOrd};
-use std::fmt::{self, Debug, Display, Formatter};
+use std::fmt::{self, Debug, Display, Error, Formatter};
 use std::hash::Hash;
 use std::ops::{BitAnd, BitOr, BitXor, Not};
+use std::str::FromStr;
+
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum GateParseError<PIError> {
+    #[error("Unknown function")]
+    UnknownFunction,
+    #[error("Syntax error")]
+    SyntaxError,
+    #[error("ParseIntError {0}")]
+    ParseInt(#[from] PIError),
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum GateFunc {
@@ -118,6 +131,43 @@ impl<T: Clone + Copy + Ord> Gate<T> {
             i0,
             i1,
             func: GateFunc::Xor,
+        }
+    }
+}
+
+impl<T: Clone + Copy + FromStr> FromStr for Gate<T> {
+    type Err = GateParseError<<T as FromStr>::Err>;
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        let (func, r) = if src.starts_with("and(") {
+            (GateFunc::And, &src[4..])
+        } else if src.starts_with("nor(") {
+            (GateFunc::Nor, &src[4..])
+        } else if src.starts_with("nimpl(") {
+            (GateFunc::Nimpl, &src[6..])
+        } else if src.starts_with("xor(") {
+            (GateFunc::Xor, &src[4..])
+        } else {
+            return Err(GateParseError::UnknownFunction);
+        };
+        let (r, i0) = if let Some(p) = r.find(',') {
+            let d = &r[0..p];
+            let d = T::from_str(d)?;
+            (&r[p + 1..], d)
+        } else {
+            return Err(GateParseError::SyntaxError);
+        };
+
+        let (r, i1) = if let Some(p) = r.find(')') {
+            let d = &r[0..p];
+            let d = T::from_str(d)?;
+            (&r[p + 1..], d)
+        } else {
+            return Err(GateParseError::SyntaxError);
+        };
+        if r.is_empty() {
+            Ok(Gate { i0, i1, func })
+        } else {
+            Err(GateParseError::SyntaxError)
         }
     }
 }
@@ -418,6 +468,34 @@ mod tests {
         assert!(Gate::new_and(4, 3) > Gate::new_and(4, 1));
         assert!(Gate::new_and(3, 4) > Gate::new_and(4, 1));
         assert!(Gate::new_and(3, 4) > Gate::new_and(1, 4));
+    }
+
+    #[test]
+    fn test_gate_from_str() {
+        assert_eq!(Gate::new_and(4, 6), Gate::from_str("and(4,6)").unwrap());
+        assert_eq!(Gate::new_nor(4, 6), Gate::from_str("nor(4,6)").unwrap());
+        assert_eq!(Gate::new_nimpl(4, 6), Gate::from_str("nimpl(4,6)").unwrap());
+        assert_eq!(Gate::new_xor(4, 6), Gate::from_str("xor(4,6)").unwrap());
+        assert_eq!(
+            Gate::new_nimpl(6764, 116),
+            Gate::from_str("nimpl(6764,116)").unwrap()
+        );
+        assert_eq!(
+            Err("Syntax error".to_string()),
+            Gate::<u8>::from_str("xor(4,6").map_err(|x| x.to_string())
+        );
+        assert_eq!(
+            Err("ParseIntError invalid digit found in string".to_string()),
+            Gate::<u8>::from_str("xor(4x,6)").map_err(|x| x.to_string())
+        );
+        assert_eq!(
+            Err("ParseIntError invalid digit found in string".to_string()),
+            Gate::<u8>::from_str("xor(4,6x)").map_err(|x| x.to_string())
+        );
+        assert_eq!(
+            Err("Unknown function".to_string()),
+            Gate::<u8>::from_str("xoor(4,6)").map_err(|x| x.to_string())
+        );
     }
 
     #[test]
