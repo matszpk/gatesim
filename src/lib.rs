@@ -325,6 +325,7 @@ where
             let mut outputs = vec![];
             let mut r = &src[1..];
             let mut end = false;
+            // first loop to parse inputs
             loop {
                 if let Some(c) = r.chars().next() {
                     if c.is_digit(10) {
@@ -351,9 +352,11 @@ where
                             ':' => {
                                 r = &r[1..];
                                 if let Some(p) = r.find(['n', ' ', ':', '}']) {
+                                    // parse output
                                     let d = &r[0..p];
                                     let output = T::from_str(d)?;
                                     r = &r[p..];
+                                    // output negation mark
                                     let neg = if r.chars().next().unwrap() == 'n' {
                                         r = &r[1..];
                                         true
@@ -368,6 +371,7 @@ where
                                     }
                                     outputs[usize::try_from(output).unwrap()] = Some((input, neg));
 
+                                    // skip next char or end
                                     match r.chars().next().unwrap() {
                                         ' ' => {
                                             r = &r[1..];
@@ -397,12 +401,12 @@ where
                     } else {
                         break;
                     }
-                    //Circuit::new(
                 } else {
                     return Err(CircuitParseError::SyntaxError);
                 }
             }
 
+            // check whether all inputs are filled
             if !input_touched.into_iter().all(|x| x) {
                 return Err(CircuitParseError::Invalid);
             }
@@ -410,6 +414,7 @@ where
             let mut gates = vec![];
             let input_len = usize::try_from(input_len).unwrap();
 
+            // second loop to parse gates
             while !end {
                 let p = if let Some(p) = r.find(')') {
                     p + 1
@@ -428,9 +433,11 @@ where
                     ':' => {
                         r = &r[1..];
                         if let Some(p) = r.find(['n', ' ', ':', '}']) {
+                            // parse output
                             let d = &r[0..p];
                             let output = T::from_str(d)?;
                             r = &r[p..];
+                            // output negation mark
                             let neg = if r.chars().next().unwrap() == 'n' {
                                 r = &r[1..];
                                 true
@@ -446,6 +453,7 @@ where
                             outputs[usize::try_from(output).unwrap()] =
                                 Some((T::try_from(input_len + gates.len() - 1).unwrap(), neg));
 
+                            // skip next char or end
                             match r.chars().next().unwrap() {
                                 ' ' => {
                                     r = &r[1..];
@@ -472,10 +480,12 @@ where
                 }
             }
 
+            // check whether if all outputs are filled
             if !outputs.iter().all(|x| x.is_some()) {
                 return Err(CircuitParseError::Invalid);
             }
 
+            // parse last part (number of inputs)
             if let Some(c) = r.chars().next() {
                 if c == '(' {
                     if let Some(p) = r.find(')') {
