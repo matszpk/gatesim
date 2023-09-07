@@ -16,6 +16,18 @@ pub enum GateParseError<PIError> {
     ParseInt(#[from] PIError),
 }
 
+#[derive(Error, Debug)]
+pub enum CircuitParseError<PIError> {
+    #[error("Syntax error")]
+    SyntaxError,
+    #[error("Invalid circuit")]
+    Invalid,
+    #[error("ParseIntError {0}")]
+    ParseInt(#[from] PIError),
+    #[error("GateParseError {0}")]
+    Gate(#[from] GateParseError<PIError>),
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum GateFunc {
     And,
@@ -137,6 +149,7 @@ impl<T: Clone + Copy + Ord> Gate<T> {
 
 impl<T: Clone + Copy + FromStr> FromStr for Gate<T> {
     type Err = GateParseError<<T as FromStr>::Err>;
+
     fn from_str(src: &str) -> Result<Self, Self::Err> {
         let (func, r) = if src.starts_with("and(") {
             (GateFunc::And, &src[4..])
@@ -290,6 +303,207 @@ where
         }
         write!(f, "}}({})", input_len)?;
         Ok(())
+    }
+}
+
+impl<T> FromStr for Circuit<T>
+where
+    T: Clone + Copy + FromStr + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
+    T: From<u8>,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+{
+    type Err = CircuitParseError<<T as FromStr>::Err>;
+
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        if src.starts_with("{") {
+            let mut input_len = T::default();
+            let mut input_touched = vec![];
+            let mut output_len = T::default();
+            let mut outputs = vec![];
+            let mut r = &src[1..];
+            let mut end = false;
+            loop {
+                if let Some(c) = r.chars().next() {
+                    if c.is_digit(10) {
+                        let p = if let Some(p) = r.find([' ', ':', '}']) {
+                            p
+                        } else {
+                            return Err(CircuitParseError::SyntaxError);
+                        };
+                        let d = &r[0..p];
+                        let input = T::from_str(d)?;
+                        r = &r[p..];
+                        // fill inputs
+                        if input >= input_len {
+                            input_len = input + T::from(1u8);
+                            input_touched.resize(usize::try_from(input_len).unwrap(), false);
+                        }
+                        input_touched[usize::try_from(input).unwrap()] = true;
+
+                        match r.chars().next().unwrap() {
+                            ' ' => {
+                                r = &r[1..];
+                                continue;
+                            }
+                            ':' => {
+                                r = &r[1..];
+                                if let Some(p) = r.find(['n', ' ', ':', '}']) {
+                                    let d = &r[0..p];
+                                    let output = T::from_str(d)?;
+                                    r = &r[p..];
+                                    let neg = if r.chars().next().unwrap() == 'n' {
+                                        r = &r[1..];
+                                        true
+                                    } else {
+                                        false
+                                    };
+
+                                    // fill outputs
+                                    if output >= output_len {
+                                        output_len = output + T::from(1u8);
+                                        outputs.resize(usize::try_from(output_len).unwrap(), None);
+                                    }
+                                    outputs[usize::try_from(output).unwrap()] = Some((input, neg));
+
+                                    match r.chars().next().unwrap() {
+                                        ' ' => {
+                                            r = &r[1..];
+                                        }
+                                        '}' => {
+                                            r = &r[1..];
+                                            end = true;
+                                            break;
+                                        }
+                                        _ => {
+                                            panic!("Unexpected");
+                                        }
+                                    };
+                                } else {
+                                    return Err(CircuitParseError::SyntaxError);
+                                }
+                            }
+                            '}' => {
+                                r = &r[1..];
+                                end = true;
+                                break;
+                            }
+                            _ => {
+                                panic!("Unexpected");
+                            }
+                        }
+                    } else {
+                        break;
+                    }
+                    //Circuit::new(
+                } else {
+                    return Err(CircuitParseError::SyntaxError);
+                }
+            }
+
+            if !input_touched.into_iter().all(|x| x) {
+                return Err(CircuitParseError::Invalid);
+            }
+
+            let mut gates = vec![];
+            let input_len = usize::try_from(input_len).unwrap();
+
+            while !end {
+                let p = if let Some(p) = r.find(')') {
+                    p + 1
+                } else {
+                    return Err(CircuitParseError::SyntaxError);
+                };
+                let gstr = &r[0..p];
+                gates.push(Gate::<T>::from_str(gstr)?);
+                r = &r[p..];
+
+                match r.chars().next().unwrap() {
+                    ' ' => {
+                        r = &r[1..];
+                        continue;
+                    }
+                    ':' => {
+                        r = &r[1..];
+                        if let Some(p) = r.find(['n', ' ', ':', '}']) {
+                            let d = &r[0..p];
+                            let output = T::from_str(d)?;
+                            r = &r[p..];
+                            let neg = if r.chars().next().unwrap() == 'n' {
+                                r = &r[1..];
+                                true
+                            } else {
+                                false
+                            };
+
+                            // fill outputs
+                            if output >= output_len {
+                                output_len = output + T::from(1u8);
+                                outputs.resize(usize::try_from(output_len).unwrap(), None);
+                            }
+                            outputs[usize::try_from(output).unwrap()] =
+                                Some((T::try_from(input_len + gates.len() - 1).unwrap(), neg));
+
+                            match r.chars().next().unwrap() {
+                                ' ' => {
+                                    r = &r[1..];
+                                }
+                                '}' => {
+                                    r = &r[1..];
+                                    break;
+                                }
+                                _ => {
+                                    panic!("Unexpected");
+                                }
+                            };
+                        } else {
+                            return Err(CircuitParseError::SyntaxError);
+                        }
+                    }
+                    '}' => {
+                        r = &r[1..];
+                        break;
+                    }
+                    _ => {
+                        panic!("Unexpected");
+                    }
+                }
+            }
+
+            if !outputs.iter().all(|x| x.is_some()) {
+                return Err(CircuitParseError::Invalid);
+            }
+
+            if let Some(c) = r.chars().next() {
+                if c == '(' {
+                    if let Some(p) = r.find(')') {
+                        let d = &r[1..p];
+                        let res_input_len = T::from_str(d)?;
+                        if res_input_len != T::try_from(input_len).unwrap() {
+                            return Err(CircuitParseError::Invalid);
+                        }
+                    } else {
+                        return Err(CircuitParseError::SyntaxError);
+                    }
+                } else {
+                    return Err(CircuitParseError::SyntaxError);
+                }
+            }
+
+            if let Some(c) = Circuit::new(
+                T::try_from(input_len).unwrap(),
+                gates,
+                outputs.into_iter().map(|x| x.unwrap()),
+            ) {
+                return Ok(c);
+            } else {
+                return Err(CircuitParseError::Invalid);
+            }
+        } else {
+            return Err(CircuitParseError::SyntaxError);
+        }
     }
 }
 
@@ -674,6 +888,68 @@ mod tests {
                 )
                 .unwrap()
             )
+        );
+    }
+
+    #[test]
+    fn test_circuit_from_str() {
+        assert_eq!(
+            Circuit::new(1, [], [(0, false)]).unwrap(),
+            Circuit::from_str("{0:0}(1)").unwrap()
+        );
+        assert_eq!(
+            Circuit::new(
+                3,
+                [
+                    Gate::new_and(0, 1),
+                    Gate::new_nor(0, 2),
+                    Gate::new_xor(3, 4),
+                ],
+                [(5, false)]
+            )
+            .unwrap(),
+            Circuit::from_str("{0 1 2 and(0,1) nor(0,2) xor(3,4):0}(3)").unwrap()
+        );
+        assert_eq!(
+            Circuit::new(
+                3,
+                [
+                    Gate::new_and(0, 1),
+                    Gate::new_nor(0, 2),
+                    Gate::new_xor(3, 4),
+                ],
+                [(5, false), (4, true), (2, true)]
+            )
+            .unwrap(),
+            Circuit::from_str("{0 1 2:2n and(0,1) nor(0,2):1n xor(3,4):0}(3)").unwrap()
+        );
+        assert_eq!(
+            Circuit::new(
+                3,
+                [
+                    Gate::new_and(0, 1),
+                    Gate::new_nor(0, 2),
+                    Gate::new_xor(3, 4),
+                    Gate::new_nimpl(1, 5),
+                ],
+                [(6, true), (4, false), (2, false)]
+            )
+            .unwrap(),
+            Circuit::from_str("{0 1 2:2 and(0,1) nor(0,2):1 xor(3,4) nimpl(1,5):0n}(3)").unwrap()
+        );
+        assert_eq!(
+            Circuit::new(
+                3,
+                [
+                    Gate::new_and(0, 1),
+                    Gate::new_nor(0, 2),
+                    Gate::new_xor(3, 4),
+                    Gate::new_nimpl(1, 5),
+                ],
+                [(6, true), (4, false), (2, false)]
+            )
+            .unwrap(),
+            Circuit::from_str("{1 2:2 0 and(0,1) nor(0,2):1 xor(3,4) nimpl(1,5):0n}(3)").unwrap()
         );
     }
 }
