@@ -951,5 +951,29 @@ mod tests {
             .unwrap(),
             Circuit::from_str("{1 2:2 0 and(0,1) nor(0,2):1 xor(3,4) nimpl(1,5):0n}(3)").unwrap()
         );
+        assert_eq!(
+            Circuit::new(
+                4,
+                [
+                    Gate::new_and(0, 2),
+                    Gate::new_and(1, 2),
+                    Gate::new_and(0, 3),
+                    Gate::new_and(1, 3),
+                    // add a1*b0 + a0*b1
+                    Gate::new_xor(5, 6),
+                    Gate::new_and(5, 6),
+                    // add c(a1*b0 + a0*b1) + a1*b1
+                    Gate::new_xor(7, 9),
+                    Gate::new_and(7, 9),
+                ],
+                [(4, false), (8, true), (10, false), (11, true)],
+            )
+            .unwrap(),
+            Circuit::from_str(concat!(
+                "{0 1 2 3 and(0,2):0 and(1,2) and(0,3) and(1,3) xor(5,6):1n ",
+                "and(5,6) xor(7,9):2 and(7,9):3n}(4)"
+            ))
+            .unwrap()
+        );
     }
 }
