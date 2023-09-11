@@ -570,7 +570,6 @@ where
             }
             used_inputs[i0] = true;
             used_inputs[i1] = true;
-            // check gate inputs
         }
         // fill up outputs - ignore gate outputs - they can be unconnected
         for (o, _) in &self.outputs {
