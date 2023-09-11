@@ -601,6 +601,7 @@ where
         }
     }
 
+    // evaluate gates results (excluding output negations)
     pub fn eval_to<Out>(&self, gate_outputs: &mut [Out])
     where
         Out: BitAnd<Output = Out>
@@ -617,6 +618,7 @@ where
         }
     }
 
+    // evaluate circuit return outputs (including negation of outputs)
     pub fn eval<Out>(&self, inputs: impl IntoIterator<Item = Out>) -> Vec<Out>
     where
         Out: BitAnd<Output = Out>
