@@ -745,6 +745,13 @@ mod tests {
             [(3, false), (4, false)]
         )
         .is_some());
+        // two output connected to one gate - first normal, second negated
+        assert!(Circuit::new(
+            3,
+            [Gate::new_xor(0, 1), Gate::new_xor(2, 3)],
+            [(3, false), (4, false), (4, true)]
+        )
+        .is_some());
         // 3 (gate index 0) and 4 (gate index 1) are outputs - can be unconnected
         assert!(Circuit::new(
             3,
