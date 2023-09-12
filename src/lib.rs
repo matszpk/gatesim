@@ -190,6 +190,7 @@ where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
+    /// Evaluate gate. Get values of argument from method arguments.
     #[inline]
     pub fn eval_args<Out>(&self, i0: Out, i1: Out) -> Out
     where
@@ -207,6 +208,7 @@ where
         }
     }
 
+    /// Evaluate gate. Get values of argument from output list indexed from 0.
     #[inline]
     pub fn eval<Out>(&self, outputs: &[Out]) -> Out
     where
@@ -552,9 +554,9 @@ where
         }
     }
 
-    // verification:
-    // all inputs and gate outputs must be used except output gates.
-    // at least one output must be a last gate ouput.
+    /// Verification:
+    /// All inputs and gate outputs must be used except output gates.
+    /// At least one output must be a last gate ouput.
     pub fn verify(&self) -> bool {
         // check inputs and gate outputs
         // gate have input less than its output.
@@ -600,7 +602,7 @@ where
         }
     }
 
-    // evaluate gates results (excluding output negations)
+    /// Evaluate gates results (without output negations).
     pub fn eval_to<Out>(&self, gate_outputs: &mut [Out])
     where
         Out: BitAnd<Output = Out>
@@ -617,7 +619,7 @@ where
         }
     }
 
-    // evaluate circuit return outputs (including negation of outputs)
+    /// Evaluate circuit return outputs (including negation of outputs).
     pub fn eval<Out>(&self, inputs: impl IntoIterator<Item = Out>) -> Vec<Out>
     where
         Out: BitAnd<Output = Out>
