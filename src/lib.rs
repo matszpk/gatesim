@@ -647,6 +647,52 @@ where
     }
 }
 
+// Clause circuits
+
+pub enum ClauseKind {
+    AndOr,
+    Xor,
+}
+
+pub struct Clause<T> {
+    pub kind: ClauseKind,
+    pub literals: Vec<(T, bool)>,
+}
+
+pub struct ClauseCircuit<T> {
+    input_len: T,
+    clauses: Vec<Clause<T>>,
+    outputs: Vec<(T, bool)>,
+}
+
+pub fn to_clause_circuit<T: Clone + Copy + Ord + PartialEq + Eq>(
+    circuit: Circuit<T>,
+) -> ClauseCircuit<T>
+where
+    T: Default + TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+{
+    ClauseCircuit {
+        input_len: T::default(),
+        clauses: vec![],
+        outputs: vec![],
+    }
+}
+
+pub fn from_clause_circuit<T: Clone + Copy + Ord + PartialEq + Eq>(
+    clause_circuit: ClauseCircuit<T>,
+) -> Circuit<T>
+where
+    T: Default + TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+{
+    Circuit::new(T::default(), [], []).unwrap()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
