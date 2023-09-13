@@ -812,6 +812,52 @@ impl<T: Clone + Copy> ClauseCircuit<T> {
     }
 }
 
+impl<T: Clone + Copy + Debug> Display for ClauseCircuit<T>
+where
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        let input_len = usize::try_from(self.input_len).unwrap();
+        let mut output_map = vec![(0, false, false); input_len + self.clauses.len()];
+        write!(f, "{{")?;
+        for (i, (v, n)) in self.outputs.iter().enumerate() {
+            output_map[usize::try_from(*v).unwrap()] = (i, *n, true);
+        }
+        for i in 0..input_len {
+            if output_map[i].2 {
+                write!(
+                    f,
+                    "{}:{}{}",
+                    i,
+                    output_map[i].0,
+                    if output_map[i].1 { "n" } else { "" }
+                )?;
+            } else {
+                write!(f, "{}", i)?;
+            }
+            if i + 1 < input_len {
+                write!(f, " ")?;
+            }
+        }
+        for (i, c) in self.clauses.iter().enumerate() {
+            if output_map[input_len + i].2 {
+                write!(
+                    f,
+                    " {}:{}{}",
+                    c,
+                    output_map[input_len + i].0,
+                    if output_map[input_len + i].1 { "n" } else { "" }
+                )?;
+            } else {
+                write!(f, " {}", c)?;
+            }
+        }
+        write!(f, "}}({})", input_len)?;
+        Ok(())
+    }
+}
+
 impl<T: Clone + Copy + PartialOrd + Ord> ClauseCircuit<T>
 where
     usize: TryFrom<T>,
@@ -1569,5 +1615,33 @@ mod tests {
                 i
             );
         }
+    }
+    
+    #[test]
+    fn clause_circuit_display() {
+        assert_eq!(
+            concat!(
+                "{0 1 2 3 and(0,1n,2):0 and(1,2) and(0,3) and(1,3) xor(5,6):1 ",
+                "and(5,6) xor(7,8,9n):2 and(7,9):3}(4)"
+            ),
+            format!(
+                "{}",
+                ClauseCircuit::new(
+                    4,
+                    [
+                        Clause::new_and([(0, false), (1, true), (2, false)]),
+                        Clause::new_and([(1, false), (2, false)]),
+                        Clause::new_and([(0, false), (3, false)]),
+                        Clause::new_and([(1, false), (3, false)]),
+                        Clause::new_xor([(5, false), (6, false)]),
+                        Clause::new_and([(5, false), (6, false)]),
+                        Clause::new_xor([(7, false), (8, false), (9, true)]),
+                        Clause::new_and([(7, false), (9, false)]),
+                    ],
+                    [(4, false), (8, false), (10, false), (11, false)],
+                )
+                .unwrap()
+            )
+        );
     }
 }
