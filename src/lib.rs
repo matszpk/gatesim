@@ -649,6 +649,28 @@ where
 
 // Clause circuits
 
+#[derive(Error, Debug)]
+pub enum ClauseParseError<PIError> {
+    #[error("Unknown kind")]
+    UnknownKind,
+    #[error("Syntax error")]
+    SyntaxError,
+    #[error("ParseIntError {0}")]
+    ParseInt(#[from] PIError),
+}
+
+#[derive(Error, Debug)]
+pub enum ClauseCircuitParseError<PIError> {
+    #[error("Syntax error")]
+    SyntaxError,
+    #[error("Invalid circuit")]
+    Invalid,
+    #[error("ParseIntError {0}")]
+    ParseInt(#[from] PIError),
+    #[error("ClauseParseError {0}")]
+    Clause(#[from] ClauseParseError<PIError>),
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ClauseKind {
     And,
@@ -779,6 +801,43 @@ where
                 out
             }
         }
+    }
+}
+
+impl<T: Clone + Copy + FromStr> FromStr for Clause<T> {
+    type Err = ClauseParseError<<T as FromStr>::Err>;
+
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        let (kind, mut r) = if src.starts_with("and(") {
+            (ClauseKind::And, &src[4..])
+        } else if src.starts_with("xor(") {
+            (ClauseKind::Xor, &src[4..])
+        } else {
+            return Err(ClauseParseError::UnknownKind);
+        };
+        let mut literals = vec![];
+        while !r.is_empty() {
+            let (rnew, i0) = if let Some(p) = r.find([',', 'n', ')']) {
+                let d = &r[0..p];
+                let d = T::from_str(d)?;
+                (&r[p..], d)
+            } else {
+                return Err(ClauseParseError::SyntaxError);
+            };
+            r = rnew;
+            let (negated, rnew) = if r.chars().next().unwrap() == 'n' {
+                (true, &r[1..])
+            } else {
+                (false, r)
+            };
+            literals.push((i0, negated));
+            if rnew.chars().next().unwrap() == ')' && rnew.len() == 1 {
+                break;
+            }
+            r = &rnew[1..];
+        }
+
+        Ok(Clause { kind, literals })
     }
 }
 
@@ -988,6 +1047,217 @@ where
                 }
             })
             .collect()
+    }
+}
+
+impl<T> FromStr for ClauseCircuit<T>
+where
+    T: Clone + Copy + FromStr + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
+    T: From<u8>,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+{
+    type Err = ClauseCircuitParseError<<T as FromStr>::Err>;
+
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        if src.starts_with("{") {
+            let mut input_len = T::default();
+            let mut input_touched = vec![];
+            let mut output_len = T::default();
+            let mut outputs = vec![];
+            let mut r = &src[1..];
+            let mut end = false;
+            // first loop to parse inputs
+            loop {
+                if let Some(c) = r.chars().next() {
+                    if c.is_digit(10) {
+                        let p = if let Some(p) = r.find([' ', ':', '}']) {
+                            p
+                        } else {
+                            return Err(ClauseCircuitParseError::SyntaxError);
+                        };
+                        let d = &r[0..p];
+                        let input = T::from_str(d)?;
+                        r = &r[p..];
+                        // fill inputs
+                        if input >= input_len {
+                            input_len = input + T::from(1u8);
+                            input_touched.resize(usize::try_from(input_len).unwrap(), false);
+                        }
+                        input_touched[usize::try_from(input).unwrap()] = true;
+
+                        match r.chars().next().unwrap() {
+                            ' ' => {
+                                r = &r[1..];
+                                continue;
+                            }
+                            ':' => {
+                                r = &r[1..];
+                                if let Some(p) = r.find(['n', ' ', ':', '}']) {
+                                    // parse output
+                                    let d = &r[0..p];
+                                    let output = T::from_str(d)?;
+                                    r = &r[p..];
+                                    // output negation mark
+                                    let neg = if r.chars().next().unwrap() == 'n' {
+                                        r = &r[1..];
+                                        true
+                                    } else {
+                                        false
+                                    };
+
+                                    // fill outputs
+                                    if output >= output_len {
+                                        output_len = output + T::from(1u8);
+                                        outputs.resize(usize::try_from(output_len).unwrap(), None);
+                                    }
+                                    outputs[usize::try_from(output).unwrap()] = Some((input, neg));
+
+                                    // skip next char or end
+                                    match r.chars().next().unwrap() {
+                                        ' ' => {
+                                            r = &r[1..];
+                                        }
+                                        '}' => {
+                                            r = &r[1..];
+                                            end = true;
+                                            break;
+                                        }
+                                        _ => {
+                                            panic!("Unexpected");
+                                        }
+                                    };
+                                } else {
+                                    return Err(ClauseCircuitParseError::SyntaxError);
+                                }
+                            }
+                            '}' => {
+                                r = &r[1..];
+                                end = true;
+                                break;
+                            }
+                            _ => {
+                                panic!("Unexpected");
+                            }
+                        }
+                    } else {
+                        break;
+                    }
+                } else {
+                    return Err(ClauseCircuitParseError::SyntaxError);
+                }
+            }
+
+            // check whether all inputs are filled
+            if !input_touched.into_iter().all(|x| x) {
+                return Err(ClauseCircuitParseError::Invalid);
+            }
+
+            let mut clauses = vec![];
+            let input_len = usize::try_from(input_len).unwrap();
+
+            // second loop to parse clauses
+            while !end {
+                let p = if let Some(p) = r.find(')') {
+                    p + 1
+                } else {
+                    return Err(ClauseCircuitParseError::SyntaxError);
+                };
+                let gstr = &r[0..p];
+                clauses.push(Clause::<T>::from_str(gstr)?);
+                r = &r[p..];
+
+                match r.chars().next().unwrap() {
+                    ' ' => {
+                        r = &r[1..];
+                        continue;
+                    }
+                    ':' => {
+                        r = &r[1..];
+                        if let Some(p) = r.find(['n', ' ', ':', '}']) {
+                            // parse output
+                            let d = &r[0..p];
+                            let output = T::from_str(d)?;
+                            r = &r[p..];
+                            // output negation mark
+                            let neg = if r.chars().next().unwrap() == 'n' {
+                                r = &r[1..];
+                                true
+                            } else {
+                                false
+                            };
+
+                            // fill outputs
+                            if output >= output_len {
+                                output_len = output + T::from(1u8);
+                                outputs.resize(usize::try_from(output_len).unwrap(), None);
+                            }
+                            outputs[usize::try_from(output).unwrap()] =
+                                Some((T::try_from(input_len + clauses.len() - 1).unwrap(), neg));
+
+                            // skip next char or end
+                            match r.chars().next().unwrap() {
+                                ' ' => {
+                                    r = &r[1..];
+                                }
+                                '}' => {
+                                    r = &r[1..];
+                                    break;
+                                }
+                                _ => {
+                                    panic!("Unexpected");
+                                }
+                            };
+                        } else {
+                            return Err(ClauseCircuitParseError::SyntaxError);
+                        }
+                    }
+                    '}' => {
+                        r = &r[1..];
+                        break;
+                    }
+                    _ => {
+                        panic!("Unexpected");
+                    }
+                }
+            }
+
+            // check whether if all outputs are filled
+            if !outputs.iter().all(|x| x.is_some()) {
+                return Err(ClauseCircuitParseError::Invalid);
+            }
+
+            // parse last part (number of inputs)
+            if let Some(c) = r.chars().next() {
+                if c == '(' {
+                    if let Some(p) = r.find(')') {
+                        let d = &r[1..p];
+                        let res_input_len = T::from_str(d)?;
+                        if res_input_len != T::try_from(input_len).unwrap() {
+                            return Err(ClauseCircuitParseError::Invalid);
+                        }
+                    } else {
+                        return Err(ClauseCircuitParseError::SyntaxError);
+                    }
+                } else {
+                    return Err(ClauseCircuitParseError::SyntaxError);
+                }
+            }
+
+            if let Some(c) = ClauseCircuit::new(
+                T::try_from(input_len).unwrap(),
+                clauses,
+                outputs.into_iter().map(|x| x.unwrap()),
+            ) {
+                return Ok(c);
+            } else {
+                return Err(ClauseCircuitParseError::Invalid);
+            }
+        } else {
+            return Err(ClauseCircuitParseError::SyntaxError);
+        }
     }
 }
 
@@ -1619,7 +1889,7 @@ mod tests {
             );
         }
     }
-    
+
     #[test]
     fn clause_circuit_display() {
         assert_eq!(
@@ -1645,6 +1915,89 @@ mod tests {
                 )
                 .unwrap()
             )
+        );
+    }
+
+    #[test]
+    fn test_clause_from_str() {
+        assert_eq!(
+            Clause::new_and([(4, false), (6, false)]),
+            Clause::from_str("and(4,6)").unwrap()
+        );
+        assert_eq!(
+            Clause::new_xor([(4, false), (6, false)]),
+            Clause::from_str("xor(4,6)").unwrap()
+        );
+        assert_eq!(
+            Clause::new_and([(6764, false), (116, false), (5671, false)]),
+            Clause::from_str("and(6764,116,5671)").unwrap()
+        );
+        assert_eq!(
+            Clause::new_and([(6764, false), (116, true), (5671, true)]),
+            Clause::from_str("and(6764,116n,5671n)").unwrap()
+        );
+        assert_eq!(
+            Err("Syntax error".to_string()),
+            Clause::<u8>::from_str("xor(4,6").map_err(|x| x.to_string())
+        );
+        assert_eq!(
+            Err("ParseIntError invalid digit found in string".to_string()),
+            Clause::<u8>::from_str("xor(4x,6)").map_err(|x| x.to_string())
+        );
+        assert_eq!(
+            Err("ParseIntError invalid digit found in string".to_string()),
+            Clause::<u8>::from_str("xor(4,6x)").map_err(|x| x.to_string())
+        );
+        assert_eq!(
+            Err("Unknown kind".to_string()),
+            Clause::<u8>::from_str("xoor(4,6)").map_err(|x| x.to_string())
+        );
+    }
+
+    #[test]
+    fn test_clause_circuit_from_str() {
+        assert_eq!(
+            ClauseCircuit::new(1, [], [(0, false)]).unwrap(),
+            ClauseCircuit::from_str("{0:0}(1)").unwrap()
+        );
+        assert_eq!(
+            ClauseCircuit::new(
+                3,
+                [
+                    Clause::new_and([(0, false), (1, false)]),
+                    Clause::new_and([(0, true), (2, true)]),
+                    Clause::new_xor([(3, false), (4, false)]),
+                ],
+                [(5, false)]
+            )
+            .unwrap(),
+            ClauseCircuit::from_str("{0 1 2 and(0,1) and(0n,2n) xor(3,4):0}(3)").unwrap()
+        );
+        assert_eq!(
+            ClauseCircuit::new(
+                3,
+                [
+                    Clause::new_and([(0, false), (1, false)]),
+                    Clause::new_and([(0, true), (2, true)]),
+                    Clause::new_xor([(3, false), (4, false)]),
+                ],
+                [(5, false), (4, true), (2, true)]
+            )
+            .unwrap(),
+            ClauseCircuit::from_str("{0 1 2:2n and(0,1) and(0n,2n):1n xor(3,4):0}(3)").unwrap()
+        );
+        assert_eq!(
+            ClauseCircuit::new(
+                3,
+                [
+                    Clause::new_and([(0, false), (1, false)]),
+                    Clause::new_and([(0, true), (1, false), (2, true)]),
+                    Clause::new_xor([(3, false), (4, false)]),
+                ],
+                [(5, false), (4, true), (2, true)]
+            )
+            .unwrap(),
+            ClauseCircuit::from_str("{0 1 2:2n and(0,1) and(0n,1,2n):1n xor(3,4):0}(3)").unwrap()
         );
     }
 }
