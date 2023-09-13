@@ -1126,6 +1126,9 @@ where
         let mut used_inputs = vec![false; output_num];
         for (i, c) in self.clauses.iter().enumerate() {
             let cur_index = input_len + i;
+            if c.len() < 2 {
+                return false;
+            }
             for (l, _) in &c.literals {
                 let l = usize::try_from(*l).unwrap();
                 if l >= cur_index {
