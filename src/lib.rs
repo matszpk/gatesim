@@ -654,8 +654,149 @@ where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
-    fn from(value: ClauseCircuit<T>) -> Self {
-        Circuit::new(T::default(), [], []).unwrap()
+    fn from(circuit: ClauseCircuit<T>) -> Self {
+        let mut clauses_gates: Vec<(T, bool)> = vec![];
+        let mut gates = vec![];
+        let input_len = usize::try_from(circuit.input_len).unwrap();
+        for clause in circuit.clauses {
+            // organize gates in parallel way
+
+            // routine to get gate with clause inputs
+            let get_gate = |l0, n0, l1, n1| {
+                let (l0, n0) = if l0 < circuit.input_len {
+                    (l0, n0)
+                } else {
+                    let (i0, in0) = clauses_gates[usize::try_from(l0).unwrap()];
+                    (i0, n0 ^ in0)
+                };
+                let (l1, n1) = if l1 < circuit.input_len {
+                    (l1, n1)
+                } else {
+                    let (i1, in1) = clauses_gates[usize::try_from(l0).unwrap()];
+                    (i1, n1 ^ in1)
+                };
+                match clause.kind {
+                    ClauseKind::And => {
+                        if n0 {
+                            if n1 {
+                                Gate::new_nor(l0, l1)
+                            } else {
+                                Gate::new_nimpl(l1, l0)
+                            }
+                        } else {
+                            if n1 {
+                                Gate::new_nimpl(l0, l1)
+                            } else {
+                                Gate::new_and(l0, l1)
+                            }
+                        }
+                    }
+                    ClauseKind::Xor => Gate::new_xor(l0, l1),
+                }
+            };
+            let clen = clause.len();
+            let level_clen = 1usize << (usize::BITS - clen.leading_zeros());
+            let mut c_gates = vec![];
+
+            let clause_neg = if clause.kind == ClauseKind::Xor {
+                clause.literals.iter().fold(false, |a, (_, n)| a ^ n)
+            } else {
+                false
+            };
+
+            if level_clen != clen {
+                // organize in two levels
+                for j in 0..clen - level_clen {
+                    let (l0, n0) = clause.literals[2 * j];
+                    let (l1, n1) = clause.literals[2 * j + 1];
+                    c_gates.push(get_gate(l0, n0, l1, n1));
+                }
+                let mut literal_count = (clen - level_clen) << 1;
+                let mut c_gates_new = vec![];
+                for j in 0..(c_gates.len() >> 1) {
+                    let cur_id = gates.len();
+                    let cur_id_0 = T::try_from(input_len + cur_id).unwrap();
+                    let cur_id_1 = T::try_from(input_len + cur_id + 1).unwrap();
+                    gates.push(c_gates[j * 2]);
+                    gates.push(c_gates[j * 2 + 1]);
+                    c_gates_new.push(Gate {
+                        func: match clause.kind {
+                            ClauseKind::And => GateFunc::And,
+                            ClauseKind::Xor => GateFunc::Xor,
+                        },
+                        i0: cur_id_0,
+                        i1: cur_id_1,
+                    });
+                }
+                // next level
+                if (literal_count & 1) != 0 {
+                    // odd gate
+                    let cur_id = gates.len();
+                    let cur_id_0 = T::try_from(input_len + cur_id).unwrap();
+                    gates.push(c_gates.pop().unwrap());
+                    let (l0, n0) = clause.literals[literal_count];
+                    c_gates_new.push(Gate {
+                        func: match clause.kind {
+                            ClauseKind::And => {
+                                if n0 {
+                                    GateFunc::Nimpl
+                                } else {
+                                    GateFunc::And
+                                }
+                            }
+                            ClauseKind::Xor => GateFunc::Xor,
+                        },
+                        i0: cur_id_0,
+                        i1: l0,
+                    });
+                    literal_count += 1;
+                }
+                for j in literal_count..c_gates.len() {
+                    let (l0, n0) = clause.literals[2 * j];
+                    let (l1, n1) = clause.literals[2 * j + 1];
+                    c_gates_new.push(get_gate(l0, n0, l1, n1));
+                }
+                c_gates = c_gates_new;
+            } else {
+                // organize in one level
+                for j in 0..(clause.len() >> 1) {
+                    let (l0, n0) = clause.literals[2 * j];
+                    let (l1, n1) = clause.literals[2 * j + 1];
+                    c_gates.push(get_gate(l0, n0, l1, n1));
+                }
+            }
+            // create next level of parallelism
+            while c_gates.len() >= 2 {
+                let mut c_gates_new = vec![];
+                for j in 0..(c_gates.len() >> 1) {
+                    let cur_id = gates.len();
+                    let cur_id_0 = T::try_from(input_len + cur_id).unwrap();
+                    let cur_id_1 = T::try_from(input_len + cur_id + 1).unwrap();
+                    gates.push(c_gates[j * 2]);
+                    gates.push(c_gates[j * 2 + 1]);
+                    c_gates_new.push(Gate {
+                        func: match clause.kind {
+                            ClauseKind::And => GateFunc::And,
+                            ClauseKind::Xor => GateFunc::Xor,
+                        },
+                        i0: cur_id_0,
+                        i1: cur_id_1,
+                    });
+                }
+                c_gates = c_gates_new;
+            }
+            let final_gate_id = T::try_from(input_len + gates.len() - 1).unwrap();
+            clauses_gates.push((final_gate_id, clause_neg));
+        }
+        Circuit::new(
+            circuit.input_len,
+            gates,
+            circuit.outputs.into_iter().map(|(l, n)| {
+                let (l, cn) = clauses_gates[usize::try_from(l).unwrap()];
+                (l, cn ^ n)
+            }),
+        )
+        .unwrap()
     }
 }
 
@@ -702,6 +843,13 @@ impl Display for ClauseKind {
 pub struct Clause<T> {
     pub kind: ClauseKind,
     pub literals: Vec<(T, bool)>,
+}
+
+impl<T> Clause<T> {
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.literals.len()
+    }
 }
 
 impl<T: Clone + Copy + Debug> Display for Clause<T> {
@@ -1280,8 +1428,8 @@ where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
-    fn from(value: Circuit<T>) -> Self {
-        ClauseCircuit::new(T::default(), [], []).unwrap()
+    fn from(circuit: Circuit<T>) -> Self {
+        ClauseCircuit::new(circuit.input_len, [], []).unwrap()
     }
 }
 
