@@ -666,13 +666,13 @@ where
                 let (l0, n0) = if l0 < circuit.input_len {
                     (l0, n0)
                 } else {
-                    let (i0, in0) = clauses_gates[usize::try_from(l0).unwrap()];
+                    let (i0, in0) = clauses_gates[usize::try_from(l0).unwrap() - input_len];
                     (i0, n0 ^ in0)
                 };
                 let (l1, n1) = if l1 < circuit.input_len {
                     (l1, n1)
                 } else {
-                    let (i1, in1) = clauses_gates[usize::try_from(l0).unwrap()];
+                    let (i1, in1) = clauses_gates[usize::try_from(l0).unwrap() - input_len];
                     (i1, n1 ^ in1)
                 };
                 match clause.kind {
@@ -735,6 +735,12 @@ where
                     let cur_id_0 = T::try_from(input_len + cur_id).unwrap();
                     gates.push(c_gates.pop().unwrap());
                     let (l0, n0) = clause.literals[literal_count];
+                    let (l0, n0) = if l0 < circuit.input_len {
+                        (l0, n0)
+                    } else {
+                        let (i0, in0) = clauses_gates[usize::try_from(l0).unwrap() - input_len];
+                        (i0, n0 ^ in0)
+                    };
                     c_gates_new.push(Gate {
                         func: match clause.kind {
                             ClauseKind::And => {
@@ -2151,7 +2157,7 @@ mod tests {
     }
 
     #[test]
-    fn test_circuit_from_clause_circuit() {
+    fn test_circuit_from_clause_circuit_0() {
         for (c, eg, ng) in [
             (
                 Clause::new_and([(0, false), (1, false)]),
@@ -2496,6 +2502,55 @@ mod tests {
                         (12, false),
                     ]),],
                     [(13, false)]
+                )
+                .unwrap()
+            )
+        );
+    }
+    
+    #[test]
+    fn test_circuit_from_clause_circuit() {
+        assert_eq!(
+            Circuit::new(
+                4,
+                [
+                    Gate::new_and(0, 1),
+                    Gate::new_and(4, 2),
+                    Gate::new_xor(0, 1),
+                    Gate::new_xor(6, 3),
+                    Gate::new_nor(1, 2),
+                    Gate::new_and(8, 3),
+                    Gate::new_nimpl(7, 5),
+                    Gate::new_and(10, 9),
+                ],
+                [(5, false), (11, false)]
+            )
+            .unwrap(),
+            Circuit::from(
+                ClauseCircuit::new(
+                    4,
+                    [Clause::new_and([
+                        (0, false),
+                        (1, false),
+                        (2, false),
+                    ]),
+                    Clause::new_xor([
+                        (0, false),
+                        (1, false),
+                        (3, false),
+                    ]),
+                    Clause::new_and([
+                        (1, true),
+                        (2, true),
+                        (3, false),
+                    ]),
+                    Clause::new_and([
+                        (4, true),
+                        (5, false),
+                        (6, false),
+                    ]),
+                    ],
+                    [(4, false), (7, false)]
                 )
                 .unwrap()
             )
