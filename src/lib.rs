@@ -649,6 +649,7 @@ where
 
 // Clause circuits
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ClauseKind {
     And,
     Xor,
@@ -663,6 +664,7 @@ impl Display for ClauseKind {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Clause<T> {
     pub kind: ClauseKind,
     pub literals: Vec<(T, bool)>,
@@ -780,6 +782,7 @@ where
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ClauseCircuit<T> {
     input_len: T,
     clauses: Vec<Clause<T>>,
