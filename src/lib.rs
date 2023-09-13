@@ -2419,5 +2419,86 @@ mod tests {
                 .unwrap()
             )
         );
+
+        assert_eq!(
+            Circuit::new(
+                10,
+                [
+                    Gate::new_and(0, 1),
+                    Gate::new_and(2, 3),
+                    Gate::new_and(10, 11),
+                    Gate::new_and(4, 5),
+                    Gate::new_and(6, 7),
+                    Gate::new_and(8, 9),
+                    Gate::new_and(12, 13),
+                    Gate::new_and(14, 15),
+                    Gate::new_and(16, 17),
+                ],
+                [(18, false)]
+            )
+            .unwrap(),
+            Circuit::from(
+                ClauseCircuit::new(
+                    10,
+                    [Clause::new_and([
+                        (0, false),
+                        (1, false),
+                        (2, false),
+                        (3, false),
+                        (4, false),
+                        (5, false),
+                        (6, false),
+                        (7, false),
+                        (8, false),
+                        (9, false),
+                    ]),],
+                    [(10, false)]
+                )
+                .unwrap()
+            )
+        );
+        assert_eq!(
+            Circuit::new(
+                13,
+                [
+                    Gate::new_and(0, 1),
+                    Gate::new_and(2, 3),
+                    Gate::new_and(4, 5),
+                    Gate::new_and(6, 7),
+                    Gate::new_and(8, 9),
+                    Gate::new_and(13, 14),
+                    Gate::new_and(15, 16),
+                    Gate::new_and(17, 10),
+                    Gate::new_and(11, 12),
+                    Gate::new_and(18, 19),
+                    Gate::new_and(20, 21),
+                    Gate::new_and(22, 23),
+                ],
+                [(24, false)]
+            )
+            .unwrap(),
+            Circuit::from(
+                ClauseCircuit::new(
+                    13,
+                    [Clause::new_and([
+                        (0, false),
+                        (1, false),
+                        (2, false),
+                        (3, false),
+                        (4, false),
+                        (5, false),
+                        (6, false),
+                        (7, false),
+                        (8, false),
+                        (9, false),
+                        (10, false),
+                        (11, false),
+                        (12, false),
+                    ]),],
+                    [(13, false)]
+                )
+                .unwrap()
+            )
+        );
     }
 }
