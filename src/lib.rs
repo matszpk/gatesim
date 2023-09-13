@@ -752,7 +752,7 @@ where
                     literal_count += 1;
                 }
                 for j in 0..((clause.len() - literal_count) >> 1) {
-                    let j = literal_count + j*2;
+                    let j = literal_count + j * 2;
                     let (l0, n0) = clause.literals[j];
                     let (l1, n1) = clause.literals[j + 1];
                     c_gates_new.push(get_gate(l0, n0, l1, n1));
@@ -2284,7 +2284,12 @@ mod tests {
             )
         );
         assert_eq!(
-            Circuit::new(3, [Gate::new_and(0, 1), Gate::new_nimpl(3, 2),], [(4, false)]).unwrap(),
+            Circuit::new(
+                3,
+                [Gate::new_and(0, 1), Gate::new_nimpl(3, 2),],
+                [(4, false)]
+            )
+            .unwrap(),
             Circuit::from(
                 ClauseCircuit::new(
                     3,
@@ -2317,6 +2322,99 @@ mod tests {
                         (4, false)
                     ]),],
                     [(5, false)]
+                )
+                .unwrap()
+            )
+        );
+        assert_eq!(
+            Circuit::new(
+                6,
+                [
+                    Gate::new_and(0, 1),
+                    Gate::new_and(2, 3),
+                    Gate::new_and(6, 7),
+                    Gate::new_and(4, 5),
+                    Gate::new_and(8, 9),
+                ],
+                [(10, false)]
+            )
+            .unwrap(),
+            Circuit::from(
+                ClauseCircuit::new(
+                    6,
+                    [Clause::new_and([
+                        (0, false),
+                        (1, false),
+                        (2, false),
+                        (3, false),
+                        (4, false),
+                        (5, false),
+                    ]),],
+                    [(6, false)]
+                )
+                .unwrap()
+            )
+        );
+        assert_eq!(
+            Circuit::new(
+                7,
+                [
+                    Gate::new_and(0, 1),
+                    Gate::new_and(2, 3),
+                    Gate::new_and(4, 5),
+                    Gate::new_and(7, 8),
+                    Gate::new_and(9, 6),
+                    Gate::new_and(10, 11),
+                ],
+                [(12, false)]
+            )
+            .unwrap(),
+            Circuit::from(
+                ClauseCircuit::new(
+                    7,
+                    [Clause::new_and([
+                        (0, false),
+                        (1, false),
+                        (2, false),
+                        (3, false),
+                        (4, false),
+                        (5, false),
+                        (6, false),
+                    ]),],
+                    [(7, false)]
+                )
+                .unwrap()
+            )
+        );
+        assert_eq!(
+            Circuit::new(
+                8,
+                [
+                    Gate::new_and(0, 1),
+                    Gate::new_and(2, 3),
+                    Gate::new_and(4, 5),
+                    Gate::new_and(6, 7),
+                    Gate::new_and(8, 9),
+                    Gate::new_and(10, 11),
+                    Gate::new_and(12, 13),
+                ],
+                [(14, false)]
+            )
+            .unwrap(),
+            Circuit::from(
+                ClauseCircuit::new(
+                    8,
+                    [Clause::new_and([
+                        (0, false),
+                        (1, false),
+                        (2, false),
+                        (3, false),
+                        (4, false),
+                        (5, false),
+                        (6, false),
+                        (7, false),
+                    ]),],
+                    [(8, false)]
                 )
                 .unwrap()
             )
