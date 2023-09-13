@@ -647,6 +647,18 @@ where
     }
 }
 
+impl<T: Clone + Copy + Ord + PartialEq + Eq> From<ClauseCircuit<T>> for Circuit<T>
+where
+    T: Default + TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+{
+    fn from(value: ClauseCircuit<T>) -> Self {
+        Circuit::new(T::default(), [], []).unwrap()
+    }
+}
+
 // Clause circuits
 
 #[derive(Error, Debug)]
@@ -1261,32 +1273,16 @@ where
     }
 }
 
-pub fn to_clause_circuit<T: Clone + Copy + Ord + PartialEq + Eq>(
-    circuit: Circuit<T>,
-) -> ClauseCircuit<T>
+impl<T: Clone + Copy + Ord + PartialEq + Eq> From<Circuit<T>> for ClauseCircuit<T>
 where
     T: Default + TryFrom<usize>,
     <T as TryFrom<usize>>::Error: Debug,
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
-    ClauseCircuit {
-        input_len: T::default(),
-        clauses: vec![],
-        outputs: vec![],
+    fn from(value: Circuit<T>) -> Self {
+        ClauseCircuit::new(T::default(), [], []).unwrap()
     }
-}
-
-pub fn from_clause_circuit<T: Clone + Copy + Ord + PartialEq + Eq>(
-    clause_circuit: ClauseCircuit<T>,
-) -> Circuit<T>
-where
-    T: Default + TryFrom<usize>,
-    <T as TryFrom<usize>>::Error: Debug,
-    usize: TryFrom<T>,
-    <usize as TryFrom<T>>::Error: Debug,
-{
-    Circuit::new(T::default(), [], []).unwrap()
 }
 
 #[cfg(test)]
