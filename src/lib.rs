@@ -2507,7 +2507,7 @@ mod tests {
             )
         );
     }
-    
+
     #[test]
     fn test_circuit_from_clause_circuit() {
         assert_eq!(
@@ -2529,26 +2529,71 @@ mod tests {
             Circuit::from(
                 ClauseCircuit::new(
                     4,
-                    [Clause::new_and([
-                        (0, false),
-                        (1, false),
-                        (2, false),
-                    ]),
-                    Clause::new_xor([
-                        (0, false),
-                        (1, false),
-                        (3, false),
-                    ]),
-                    Clause::new_and([
-                        (1, true),
-                        (2, true),
-                        (3, false),
-                    ]),
-                    Clause::new_and([
-                        (4, true),
-                        (5, false),
-                        (6, false),
-                    ]),
+                    [
+                        Clause::new_and([(0, false), (1, false), (2, false),]),
+                        Clause::new_xor([(0, false), (1, false), (3, false),]),
+                        Clause::new_and([(1, true), (2, true), (3, false),]),
+                        Clause::new_and([(4, true), (5, false), (6, false),]),
+                    ],
+                    [(4, false), (7, false)]
+                )
+                .unwrap()
+            )
+        );
+        assert_eq!(
+            Circuit::new(
+                4,
+                [
+                    Gate::new_and(0, 1),
+                    Gate::new_and(4, 2),
+                    Gate::new_xor(0, 1),
+                    Gate::new_xor(6, 3),
+                    Gate::new_nor(1, 2),
+                    Gate::new_and(8, 3),
+                    Gate::new_nor(5, 7),
+                    Gate::new_and(10, 9),
+                ],
+                [(5, false), (11, false)]
+            )
+            .unwrap(),
+            Circuit::from(
+                ClauseCircuit::new(
+                    4,
+                    [
+                        Clause::new_and([(0, false), (1, false), (2, false),]),
+                        Clause::new_xor([(0, false), (1, true), (3, false),]),
+                        Clause::new_and([(1, true), (2, true), (3, false),]),
+                        Clause::new_and([(4, true), (5, false), (6, false),]),
+                    ],
+                    [(4, false), (7, false)]
+                )
+                .unwrap()
+            )
+        );
+        assert_eq!(
+            Circuit::new(
+                4,
+                [
+                    Gate::new_and(0, 1),
+                    Gate::new_and(4, 2),
+                    Gate::new_xor(0, 1),
+                    Gate::new_xor(6, 3),
+                    Gate::new_nor(1, 2),
+                    Gate::new_and(8, 3),
+                    Gate::new_nimpl(7, 5),
+                    Gate::new_and(10, 9),
+                ],
+                [(5, false), (11, false)]
+            )
+            .unwrap(),
+            Circuit::from(
+                ClauseCircuit::new(
+                    4,
+                    [
+                        Clause::new_and([(0, false), (1, false), (2, false),]),
+                        Clause::new_xor([(0, false), (1, true), (3, false),]),
+                        Clause::new_and([(1, true), (2, true), (3, false),]),
+                        Clause::new_and([(4, true), (5, true), (6, false),]),
                     ],
                     [(4, false), (7, false)]
                 )
