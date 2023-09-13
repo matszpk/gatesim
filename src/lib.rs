@@ -1434,4 +1434,140 @@ mod tests {
             format!("{}", Clause::new_xor([(0, false), (1, true), (2, false)]))
         );
     }
+
+    #[test]
+    fn test_clause_circuit_new() {
+        assert!(
+            ClauseCircuit::new(2, [Clause::new_xor([(0, false), (1, false)])], [(2, false)])
+                .is_some()
+        );
+        assert!(
+            ClauseCircuit::new(2, [Clause::new_xor([(0, false), (1, false)])], [(2, true)])
+                .is_some()
+        );
+        assert!(
+            ClauseCircuit::new(2, [Clause::new_xor([(0, false), (1, false)])], [(3, false)])
+                .is_none()
+        );
+        assert!(
+            ClauseCircuit::new(2, [Clause::new_xor([(1, false), (1, false)])], [(3, false)])
+                .is_none()
+        );
+        assert!(
+            ClauseCircuit::new(2, [Clause::new_xor([(0, false), (0, false)])], [(3, false)])
+                .is_none()
+        );
+        assert!(
+            ClauseCircuit::new(2, [Clause::new_xor([(0, false), (1, false)])], [(1, false)])
+                .is_none()
+        );
+
+        assert!(ClauseCircuit::new(
+            3,
+            [
+                Clause::new_xor([(0, false), (1, false)]),
+                Clause::new_xor([(2, false), (3, false)])
+            ],
+            [(4, false)]
+        )
+        .is_some());
+        assert!(ClauseCircuit::new(
+            3,
+            [
+                Clause::new_xor([(0, false), (1, false)]),
+                Clause::new_xor([(2, false), (1, false)])
+            ],
+            [(4, false)]
+        )
+        .is_none());
+        assert!(ClauseCircuit::new(
+            3,
+            [
+                Clause::new_xor([(0, false), (1, false)]),
+                Clause::new_xor([(2, false), (3, false)])
+            ],
+            [(3, false), (4, false)]
+        )
+        .is_some());
+        // two output connected to one gate - first normal, second negated
+        assert!(ClauseCircuit::new(
+            3,
+            [
+                Clause::new_xor([(0, false), (1, false)]),
+                Clause::new_xor([(2, false), (3, false)])
+            ],
+            [(3, false), (4, false), (4, true)]
+        )
+        .is_some());
+        // 3 (gate index 0) and 4 (gate index 1) are outputs - can be unconnected
+        assert!(ClauseCircuit::new(
+            3,
+            [
+                Clause::new_xor([(0, false), (1, false)]),
+                Clause::new_xor([(0, false), (2, false)])
+            ],
+            [(3, false), (4, false)]
+        )
+        .is_some());
+        assert!(ClauseCircuit::new(
+            3,
+            [
+                Clause::new_xor([(0, false), (1, false)]),
+                Clause::new_xor([(1, false), (2, false)]),
+                Clause::new_xor([(0, false), (4, false)])
+            ],
+            [(3, false), (5, false)]
+        )
+        .is_some());
+        // first gate is not connected later
+        assert!(ClauseCircuit::new(
+            3,
+            [
+                Clause::new_xor([(0, false), (1, false)]),
+                Clause::new_xor([(1, false), (2, false)]),
+                Clause::new_xor([(0, false), (4, false)])
+            ],
+            [(5, false)]
+        )
+        .is_none());
+        // accept same inputs
+        assert!(ClauseCircuit::new(
+            3,
+            [
+                Clause::new_xor([(0, false), (1, false)]),
+                Clause::new_xor([(2, false), (2, true)]),
+                Clause::new_xor([(0, false), (4, false)])
+            ],
+            [(3, false), (5, false)]
+        )
+        .is_some());
+        assert!(ClauseCircuit::new(1, [], [(0, false)]).is_some());
+        assert!(ClauseCircuit::new(2, [], [(0, false), (1, true)]).is_some());
+        assert!(ClauseCircuit::new(0, [], []).is_some());
+    }
+
+    #[test]
+    fn clause_circuit_eval() {
+        let circuit = ClauseCircuit::new(
+            3,
+            [
+                Clause::new_xor([(0, false), (1, false)]),
+                Clause::new_xor([(2, false), (3, false)]),
+                Clause::new_and([(2, false), (3, false)]),
+                Clause::new_and([(0, false), (1, false)]),
+                Clause::new_and([(5, true), (6, true)]),
+            ],
+            [(4, false), (7, true)],
+        )
+        .unwrap();
+        for i in 0..8 {
+            let expected = (i & 1) + ((i & 2) >> 1) + ((i & 4) >> 2);
+            assert_eq!(
+                vec![(expected & 1) != 0, (expected & 2) != 0],
+                circuit.eval([(i & 1) != 0, (i & 2) != 0, (i & 4) != 0]),
+                "test {}",
+                i
+            );
+        }
+    }
 }
