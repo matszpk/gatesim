@@ -786,6 +786,162 @@ pub struct ClauseCircuit<T> {
     outputs: Vec<(T, bool)>,
 }
 
+impl<T: Clone + Copy> ClauseCircuit<T> {
+    pub fn clauses(&self) -> &[Clause<T>] {
+        &self.clauses
+    }
+
+    pub unsafe fn clauses_mut(&mut self) -> &mut [Clause<T>] {
+        &mut self.clauses
+    }
+
+    pub fn outputs(&self) -> &[(T, bool)] {
+        &self.outputs
+    }
+
+    pub unsafe fn outputs_mut(&mut self) -> &mut [(T, bool)] {
+        &mut self.outputs
+    }
+
+    pub fn input_len(&self) -> T {
+        self.input_len
+    }
+
+    pub fn len(&self) -> usize {
+        self.clauses.len()
+    }
+}
+
+impl<T: Clone + Copy + PartialOrd + Ord> ClauseCircuit<T>
+where
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+{
+    pub unsafe fn new_unchecked(
+        input_len: T,
+        clauses: impl IntoIterator<Item = Clause<T>>,
+        outputs: impl IntoIterator<Item = (T, bool)>,
+    ) -> Self {
+        Self {
+            input_len,
+            clauses: Vec::from_iter(clauses),
+            outputs: Vec::from_iter(outputs),
+        }
+    }
+
+    pub fn new(
+        input_len: T,
+        clauses: impl IntoIterator<Item = Clause<T>>,
+        outputs: impl IntoIterator<Item = (T, bool)>,
+    ) -> Option<Self> {
+        let out = Self {
+            input_len,
+            clauses: Vec::from_iter(clauses),
+            outputs: Vec::from_iter(outputs),
+        };
+        // verify
+        if out.verify() {
+            Some(out)
+        } else {
+            None
+        }
+    }
+
+    /// Verification:
+    /// All inputs and gate outputs must be used except output gates.
+    /// At least one output must be a last gate ouput.
+    pub fn verify(&self) -> bool {
+        // check inputs and gate outputs
+        // gate have input less than its output.
+        let input_len = usize::try_from(self.input_len).unwrap();
+        let output_num = input_len + self.clauses.len();
+        let mut used_inputs = vec![false; output_num];
+        for (i, c) in self.clauses.iter().enumerate() {
+            let cur_index = input_len + i;
+            for (l, _) in &c.literals {
+                let l = usize::try_from(*l).unwrap();
+                if l >= cur_index {
+                    return false;
+                }
+                used_inputs[l] = true;
+            }
+        }
+        // fill up outputs - ignore gate outputs - they can be unconnected
+        for (o, _) in &self.outputs {
+            let o = usize::try_from(*o).unwrap();
+            if o >= output_num {
+                return false;
+            }
+            used_inputs[o] = true;
+        }
+        if !used_inputs.into_iter().all(|x| x) {
+            return false;
+        }
+        // check outputs: at least once output must be last gate output.
+        if !self.outputs.is_empty() && !self.clauses.is_empty() {
+            let mut last_output = false;
+            for (o, _) in &self.outputs {
+                let o = usize::try_from(*o).unwrap();
+                if o >= output_num {
+                    return false;
+                }
+                if o == output_num - 1 {
+                    last_output = true;
+                }
+            }
+            last_output
+        } else {
+            true
+        }
+    }
+
+    /// Evaluate gates results (without output negations).
+    pub fn eval_to<Out>(&self, clause_outputs: &mut [Out])
+    where
+        Out: BitAnd<Output = Out>
+            + BitOr<Output = Out>
+            + BitXor<Output = Out>
+            + Not<Output = Out>
+            + Default
+            + Clone
+            + Copy,
+    {
+        let input_len = usize::try_from(self.input_len).unwrap();
+        assert_eq!(clause_outputs.len(), input_len + self.clauses.len());
+        for (i, c) in self.clauses.iter().enumerate() {
+            clause_outputs[input_len + i] = c.eval(&clause_outputs);
+        }
+    }
+
+    /// Evaluate circuit return outputs (including negation of outputs).
+    pub fn eval<Out>(&self, inputs: impl IntoIterator<Item = Out>) -> Vec<Out>
+    where
+        Out: BitAnd<Output = Out>
+            + BitOr<Output = Out>
+            + BitXor<Output = Out>
+            + Not<Output = Out>
+            + Default
+            + Clone
+            + Copy,
+    {
+        let mut clause_outputs = Vec::from_iter(inputs);
+        let input_len = usize::try_from(self.input_len).unwrap();
+        clause_outputs.resize(input_len + self.clauses.len(), Out::default());
+        self.eval_to(&mut clause_outputs);
+        self.outputs
+            .iter()
+            .map(|&(i, n)| {
+                let out = clause_outputs[usize::try_from(i).unwrap()].clone();
+                if n {
+                    !out
+                } else {
+                    out
+                }
+            })
+            .collect()
+    }
+}
+
 pub fn to_clause_circuit<T: Clone + Copy + Ord + PartialEq + Eq>(
     circuit: Circuit<T>,
 ) -> ClauseCircuit<T>
