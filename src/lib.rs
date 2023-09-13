@@ -706,7 +706,6 @@ where
 
             if level_clen != clen {
                 // organize in two levels
-                println!("CC cc {} {}", level_clen, clen - level_clen);
                 for j in 0..clen - level_clen {
                     let (l0, n0) = clause.literals[2 * j];
                     let (l1, n1) = clause.literals[2 * j + 1];
@@ -752,9 +751,10 @@ where
                     });
                     literal_count += 1;
                 }
-                for j in literal_count..clause.len() {
-                    let (l0, n0) = clause.literals[2 * j];
-                    let (l1, n1) = clause.literals[2 * j + 1];
+                for j in 0..((clause.len() - literal_count) >> 1) {
+                    let j = literal_count + j*2;
+                    let (l0, n0) = clause.literals[j];
+                    let (l1, n1) = clause.literals[j + 1];
                     c_gates_new.push(get_gate(l0, n0, l1, n1));
                 }
                 c_gates = c_gates_new;
@@ -786,9 +786,7 @@ where
                 }
                 c_gates = c_gates_new;
             }
-            if !c_gates.is_empty() {
-                gates.push(c_gates[0]);
-            }
+            gates.push(c_gates[0]);
             let final_gate_id = T::try_from(input_len + gates.len() - 1).unwrap();
             clauses_gates.push((final_gate_id, clause_neg));
         }
@@ -2281,6 +2279,44 @@ mod tests {
                     3,
                     [Clause::new_and([(0, false), (1, false), (2, false)]),],
                     [(3, false)]
+                )
+                .unwrap()
+            )
+        );
+        assert_eq!(
+            Circuit::new(3, [Gate::new_and(0, 1), Gate::new_nimpl(3, 2),], [(4, false)]).unwrap(),
+            Circuit::from(
+                ClauseCircuit::new(
+                    3,
+                    [Clause::new_and([(0, false), (1, false), (2, true)]),],
+                    [(3, false)]
+                )
+                .unwrap()
+            )
+        );
+        assert_eq!(
+            Circuit::new(
+                5,
+                [
+                    Gate::new_and(0, 1),
+                    Gate::new_and(5, 2),
+                    Gate::new_and(3, 4),
+                    Gate::new_and(6, 7),
+                ],
+                [(8, false)]
+            )
+            .unwrap(),
+            Circuit::from(
+                ClauseCircuit::new(
+                    5,
+                    [Clause::new_and([
+                        (0, false),
+                        (1, false),
+                        (2, false),
+                        (3, false),
+                        (4, false)
+                    ]),],
+                    [(5, false)]
                 )
                 .unwrap()
             )
