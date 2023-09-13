@@ -2200,6 +2200,27 @@ mod tests {
                 c
             );
         }
+        // include not-negated clause and negated output
+        assert_eq!(
+            Circuit::new(2, [Gate::new_xor(0, 1),], [(2, true)]).unwrap(),
+            Circuit::from(
+                ClauseCircuit::new(
+                    2,
+                    [Clause::new_xor([(0, false), (1, false),]),],
+                    [(2, true)]
+                )
+                .unwrap()
+            )
+        );
+        // include negated clause and negated output
+        assert_eq!(
+            Circuit::new(2, [Gate::new_xor(0, 1),], [(2, false)]).unwrap(),
+            Circuit::from(
+                ClauseCircuit::new(2, [Clause::new_xor([(0, true), (1, false),]),], [(2, true)])
+                    .unwrap()
+            )
+        );
+
         assert_eq!(
             Circuit::new(
                 4,
@@ -2219,6 +2240,31 @@ mod tests {
                         (1, false),
                         (2, false),
                         (3, false)
+                    ]),],
+                    [(4, false)]
+                )
+                .unwrap()
+            )
+        );
+        assert_eq!(
+            Circuit::new(
+                4,
+                [
+                    Gate::new_nimpl(1, 0),
+                    Gate::new_nimpl(2, 3),
+                    Gate::new_and(4, 5)
+                ],
+                [(6, false)]
+            )
+            .unwrap(),
+            Circuit::from(
+                ClauseCircuit::new(
+                    4,
+                    [Clause::new_and([
+                        (0, true),
+                        (1, false),
+                        (2, false),
+                        (3, true)
                     ]),],
                     [(4, false)]
                 )
