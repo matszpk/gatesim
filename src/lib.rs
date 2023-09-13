@@ -706,6 +706,7 @@ where
 
             if level_clen != clen {
                 // organize in two levels
+                println!("CC cc {} {}", level_clen, clen - level_clen);
                 for j in 0..clen - level_clen {
                     let (l0, n0) = clause.literals[2 * j];
                     let (l1, n1) = clause.literals[2 * j + 1];
@@ -713,7 +714,7 @@ where
                 }
                 let mut literal_count = (clen - level_clen) << 1;
                 let mut c_gates_new = vec![];
-                for j in 0..(c_gates.len() >> 1) {
+                for j in 0..(literal_count >> 2) {
                     let cur_id = gates.len();
                     let cur_id_0 = T::try_from(input_len + cur_id).unwrap();
                     let cur_id_1 = T::try_from(input_len + cur_id + 1).unwrap();
@@ -729,7 +730,7 @@ where
                     });
                 }
                 // next level
-                if (literal_count & 1) != 0 {
+                if ((literal_count >> 1) & 1) != 0 {
                     // odd gate
                     let cur_id = gates.len();
                     let cur_id_0 = T::try_from(input_len + cur_id).unwrap();
@@ -751,7 +752,7 @@ where
                     });
                     literal_count += 1;
                 }
-                for j in literal_count..c_gates.len() {
+                for j in literal_count..clause.len() {
                     let (l0, n0) = clause.literals[2 * j];
                     let (l1, n1) = clause.literals[2 * j + 1];
                     c_gates_new.push(get_gate(l0, n0, l1, n1));
@@ -785,7 +786,9 @@ where
                 }
                 c_gates = c_gates_new;
             }
-            gates.push(c_gates[0]);
+            if !c_gates.is_empty() {
+                gates.push(c_gates[0]);
+            }
             let final_gate_id = T::try_from(input_len + gates.len() - 1).unwrap();
             clauses_gates.push((final_gate_id, clause_neg));
         }
@@ -2267,6 +2270,17 @@ mod tests {
                         (3, true)
                     ]),],
                     [(4, false)]
+                )
+                .unwrap()
+            )
+        );
+        assert_eq!(
+            Circuit::new(3, [Gate::new_and(0, 1), Gate::new_and(3, 2),], [(4, false)]).unwrap(),
+            Circuit::from(
+                ClauseCircuit::new(
+                    3,
+                    [Clause::new_and([(0, false), (1, false), (2, false)]),],
+                    [(3, false)]
                 )
                 .unwrap()
             )
