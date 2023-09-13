@@ -671,8 +671,18 @@ pub struct Clause<T> {
 impl<T: Clone + Copy + Debug> Display for Clause<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "{}(", self.kind)?;
-        for (l, n) in &self.literals {
-            write!(f, "{:?}{}", l, if *n { "n" } else { "" })?;
+        for (i, (l, n)) in self.literals.iter().enumerate() {
+            write!(
+                f,
+                "{:?}{}{}",
+                l,
+                if *n { "n" } else { "" },
+                if i + 1 < self.literals.len() {
+                    ','
+                } else {
+                    ')'
+                }
+            )?;
         }
         Ok(())
     }
@@ -1226,5 +1236,25 @@ mod tests {
         ] {
             assert_eq!(exp, c.eval(&inputs) & 0b11111111);
         }
+    }
+
+    #[test]
+    fn test_clause_display() {
+        assert_eq!(
+            "and(0,1n,2n)",
+            format!("{}", Clause::new_and([(0, false), (1, true), (2, true)]))
+        );
+        assert_eq!(
+            "and(0,1n,2)",
+            format!("{}", Clause::new_and([(0, false), (1, true), (2, false)]))
+        );
+        assert_eq!(
+            "xor(0,1n,2n)",
+            format!("{}", Clause::new_xor([(0, false), (1, true), (2, true)]))
+        );
+        assert_eq!(
+            "xor(0,1n,2)",
+            format!("{}", Clause::new_xor([(0, false), (1, true), (2, false)]))
+        );
     }
 }
