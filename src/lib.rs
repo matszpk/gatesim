@@ -695,7 +695,7 @@ where
                 }
             };
             let clen = clause.len();
-            let level_clen = 1usize << (usize::BITS - clen.leading_zeros());
+            let level_clen = 1usize << (usize::BITS - clen.leading_zeros() - 1);
             let mut c_gates = vec![];
 
             let clause_neg = if clause.kind == ClauseKind::Xor {
@@ -785,6 +785,7 @@ where
                 }
                 c_gates = c_gates_new;
             }
+            gates.push(c_gates[0]);
             let final_gate_id = T::try_from(input_len + gates.len() - 1).unwrap();
             clauses_gates.push((final_gate_id, clause_neg));
         }
@@ -792,7 +793,7 @@ where
             circuit.input_len,
             gates,
             circuit.outputs.into_iter().map(|(l, n)| {
-                let (l, cn) = clauses_gates[usize::try_from(l).unwrap()];
+                let (l, cn) = clauses_gates[usize::try_from(l).unwrap() - input_len];
                 (l, cn ^ n)
             }),
         )
@@ -2145,6 +2146,84 @@ mod tests {
             )
             .unwrap(),
             ClauseCircuit::from_str("{0 1 2:2n and(0,1) and(0n,1,2n):1n xor(3,4):0}(3)").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_circuit_from_clause_circuit() {
+        for (c, eg, ng) in [
+            (
+                Clause::new_and([(0, false), (1, false)]),
+                Gate::new_and(0, 1),
+                false,
+            ),
+            (
+                Clause::new_and([(0, true), (1, false)]),
+                Gate::new_nimpl(1, 0),
+                false,
+            ),
+            (
+                Clause::new_and([(0, false), (1, true)]),
+                Gate::new_nimpl(0, 1),
+                false,
+            ),
+            (
+                Clause::new_and([(0, true), (1, true)]),
+                Gate::new_nor(0, 1),
+                false,
+            ),
+            (
+                Clause::new_xor([(0, false), (1, false)]),
+                Gate::new_xor(0, 1),
+                false,
+            ),
+            (
+                Clause::new_xor([(0, true), (1, false)]),
+                Gate::new_xor(0, 1),
+                true,
+            ),
+            (
+                Clause::new_xor([(0, false), (1, true)]),
+                Gate::new_xor(0, 1),
+                true,
+            ),
+            (
+                Clause::new_xor([(0, true), (1, true)]),
+                Gate::new_xor(0, 1),
+                false,
+            ),
+        ] {
+            assert_eq!(
+                Circuit::new(2, [eg], [(2, ng)]).unwrap(),
+                Circuit::from(ClauseCircuit::new(2, [c.clone()], [(2, false)]).unwrap()),
+                "testgc {}",
+                c
+            );
+        }
+        assert_eq!(
+            Circuit::new(
+                4,
+                [
+                    Gate::new_and(0, 1),
+                    Gate::new_and(2, 3),
+                    Gate::new_and(4, 5)
+                ],
+                [(6, false)]
+            )
+            .unwrap(),
+            Circuit::from(
+                ClauseCircuit::new(
+                    4,
+                    [Clause::new_and([
+                        (0, false),
+                        (1, false),
+                        (2, false),
+                        (3, false)
+                    ]),],
+                    [(4, false)]
+                )
+                .unwrap()
+            )
         );
     }
 }
