@@ -109,7 +109,7 @@ impl<T: Clone + Copy + PartialOrd> PartialOrd for Gate<T> {
     }
 }
 
-impl<T: Clone + Copy + Ord> Gate<T> {
+impl<T: Clone + Copy> Gate<T> {
     #[inline]
     pub fn new_and(i0: T, i1: T) -> Self {
         Gate {
@@ -650,13 +650,120 @@ where
 // Clause circuits
 
 pub enum ClauseKind {
-    AndOr,
+    And,
     Xor,
+}
+
+impl Display for ClauseKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        match self {
+            ClauseKind::And => write!(f, "and"),
+            ClauseKind::Xor => write!(f, "xor"),
+        }
+    }
 }
 
 pub struct Clause<T> {
     pub kind: ClauseKind,
     pub literals: Vec<(T, bool)>,
+}
+
+impl<T: Clone + Copy + Debug> Display for Clause<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        write!(f, "{}(", self.kind)?;
+        for (l, n) in &self.literals {
+            write!(f, "{:?}{}", l, if *n { "n" } else { "" })?;
+        }
+        Ok(())
+    }
+}
+
+impl<T: Clone + Copy> Clause<T> {
+    #[inline]
+    pub fn new_and(literals: impl IntoIterator<Item = (T, bool)>) -> Self {
+        Clause {
+            kind: ClauseKind::And,
+            literals: Vec::from_iter(literals),
+        }
+    }
+
+    #[inline]
+    pub fn new_xor(literals: impl IntoIterator<Item = (T, bool)>) -> Self {
+        Clause {
+            kind: ClauseKind::Xor,
+            literals: Vec::from_iter(literals),
+        }
+    }
+}
+
+impl<T: Copy + Clone> Clause<T>
+where
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+{
+    /// Evaluate clause. Get values of argument from method arguments.
+    #[inline]
+    pub fn eval_args<Out>(&self, args: impl IntoIterator<Item = Out>) -> Out
+    where
+        Out: BitAnd<Output = Out> + BitXor<Output = Out> + Not<Output = Out> + Clone + Default,
+    {
+        let mut args = args.into_iter();
+        if let Some(arg) = args.next() {
+            let mut out = if self.literals[0].1 { !arg } else { arg };
+            match self.kind {
+                ClauseKind::And => {
+                    for (i, x) in args.enumerate() {
+                        out = out & if self.literals[i + 1].1 { !x } else { x };
+                    }
+                    out
+                }
+                ClauseKind::Xor => {
+                    for (i, x) in args.enumerate() {
+                        out = out ^ if self.literals[i + 1].1 { !x } else { x };
+                    }
+                    out
+                }
+            }
+        } else {
+            Out::default()
+        }
+    }
+
+    /// Evaluate clause. Get values of argument from method arguments.
+    #[inline]
+    pub fn eval<Out>(&self, values: &[Out]) -> Out
+    where
+        Out: BitAnd<Output = Out>
+            + BitXor<Output = Out>
+            + Not<Output = Out>
+            + Clone
+            + Copy
+            + Default,
+    {
+        match self.kind {
+            ClauseKind::And => {
+                let l = usize::try_from(self.literals[0].0).unwrap();
+                let mut out = if self.literals[0].1 {
+                    !values[l]
+                } else {
+                    values[l]
+                };
+                for (l, n) in self.literals.iter().skip(1) {
+                    let l = usize::try_from(*l).unwrap();
+                    out = out & if *n { !values[l] } else { values[l] };
+                }
+                out
+            }
+            ClauseKind::Xor => {
+                let mut out = Out::default();
+                for (l, n) in self.literals.iter() {
+                    let l = usize::try_from(*l).unwrap();
+                    out = out ^ if *n { !values[l] } else { values[l] };
+                }
+                out
+            }
+        }
+    }
 }
 
 pub struct ClauseCircuit<T> {
@@ -1041,5 +1148,83 @@ mod tests {
             ))
             .unwrap()
         );
+    }
+
+    #[test]
+    fn test_clause() {
+        let inputs = [0b10101010, 0b11001100, 0b11110000];
+        for (c, exp) in [
+            (
+                Clause::new_and([(0, false), (1, false), (2, false)]),
+                0b10000000,
+            ),
+            (
+                Clause::new_and([(0, false), (1, false), (2, true)]),
+                0b00001000,
+            ),
+            (
+                Clause::new_and([(0, true), (1, false), (2, false)]),
+                0b01000000,
+            ),
+            (
+                Clause::new_and([(0, false), (1, true), (2, true)]),
+                0b00000010,
+            ),
+            (
+                Clause::new_xor([(0, false), (1, false), (2, false)]),
+                0b10010110,
+            ),
+            (
+                Clause::new_xor([(0, false), (1, false), (2, true)]),
+                0b01101001,
+            ),
+            (
+                Clause::new_xor([(0, true), (1, false), (2, false)]),
+                0b01101001,
+            ),
+            (
+                Clause::new_xor([(0, false), (1, true), (2, true)]),
+                0b10010110,
+            ),
+        ] {
+            assert_eq!(exp, c.eval_args(inputs.clone()) & 0b11111111);
+        }
+
+        for (c, exp) in [
+            (
+                Clause::new_and([(0, false), (1, false), (2, false)]),
+                0b10000000,
+            ),
+            (
+                Clause::new_and([(0, false), (1, false), (2, true)]),
+                0b00001000,
+            ),
+            (
+                Clause::new_and([(0, true), (1, false), (2, false)]),
+                0b01000000,
+            ),
+            (
+                Clause::new_and([(0, false), (1, true), (2, true)]),
+                0b00000010,
+            ),
+            (
+                Clause::new_xor([(0, false), (1, false), (2, false)]),
+                0b10010110,
+            ),
+            (
+                Clause::new_xor([(0, false), (1, false), (2, true)]),
+                0b01101001,
+            ),
+            (
+                Clause::new_xor([(0, true), (1, false), (2, false)]),
+                0b01101001,
+            ),
+            (
+                Clause::new_xor([(0, false), (1, true), (2, true)]),
+                0b10010110,
+            ),
+        ] {
+            assert_eq!(exp, c.eval(&inputs) & 0b11111111);
+        }
     }
 }
