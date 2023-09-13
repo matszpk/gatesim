@@ -752,17 +752,21 @@ where
     {
         match self.kind {
             ClauseKind::And => {
-                let l = usize::try_from(self.literals[0].0).unwrap();
-                let mut out = if self.literals[0].1 {
-                    !values[l]
+                if !self.literals.is_empty() {
+                    let l = usize::try_from(self.literals[0].0).unwrap();
+                    let mut out = if self.literals[0].1 {
+                        !values[l]
+                    } else {
+                        values[l]
+                    };
+                    for (l, n) in self.literals.iter().skip(1) {
+                        let l = usize::try_from(*l).unwrap();
+                        out = out & if *n { !values[l] } else { values[l] };
+                    }
+                    out
                 } else {
-                    values[l]
-                };
-                for (l, n) in self.literals.iter().skip(1) {
-                    let l = usize::try_from(*l).unwrap();
-                    out = out & if *n { !values[l] } else { values[l] };
+                    Out::default()
                 }
-                out
             }
             ClauseKind::Xor => {
                 let mut out = Out::default();
@@ -1201,6 +1205,13 @@ mod tests {
         }
 
         for (c, exp) in [
+            (Clause::<u8>::new_and([]), 0b00000000),
+            (Clause::<u8>::new_xor([]), 0b00000000),
+        ] {
+            assert_eq!(exp, c.eval_args::<u8>([]) & 0b11111111);
+        }
+
+        for (c, exp) in [
             (
                 Clause::new_and([(0, false), (1, false), (2, false)]),
                 0b10000000,
@@ -1218,6 +1229,11 @@ mod tests {
                 0b00000010,
             ),
             (
+                Clause::new_and([(2, false), (1, true), (0, true)]),
+                0b00010000,
+            ),
+            (Clause::new_and([]), 0b00000000),
+            (
                 Clause::new_xor([(0, false), (1, false), (2, false)]),
                 0b10010110,
             ),
@@ -1233,6 +1249,11 @@ mod tests {
                 Clause::new_xor([(0, false), (1, true), (2, true)]),
                 0b10010110,
             ),
+            (
+                Clause::new_xor([(2, false), (1, true), (0, true)]),
+                0b10010110,
+            ),
+            (Clause::new_xor([]), 0b00000000),
         ] {
             assert_eq!(exp, c.eval(&inputs) & 0b11111111);
         }
