@@ -2892,7 +2892,7 @@ mod tests {
                 i
             );
         }
-        
+
         let circuit = ClauseCircuit::new(
             4,
             [
@@ -3335,7 +3335,7 @@ mod tests {
                 i
             );
         }
-        
+
         let circuit = Circuit::new(
             4,
             [
