@@ -1444,6 +1444,90 @@ where
     <usize as TryFrom<T>>::Error: Debug,
 {
     fn from(circuit: Circuit<T>) -> Self {
+        let input_len = usize::try_from(circuit.input_len).unwrap();
+        let mut used_outputs = vec![0u8; circuit.len()];
+        for g in &circuit.gates {
+            let i0 = usize::try_from(g.i0).unwrap();
+            let i1 = usize::try_from(g.i1).unwrap();
+            if i0 >= input_len {
+                if used_outputs[i0 - input_len] < 2 {
+                    used_outputs[i0 - input_len] += 1;
+                }
+            }
+            if i1 >= input_len {
+                if used_outputs[i1 - input_len] < 2 {
+                    used_outputs[i1 - input_len] += 1;
+                }
+            }
+        }
+        // collect clauses
+        let mut clause_ids: Vec<Option<usize>> = vec![None; circuit.gates.len()];
+        let mut clauses: Vec<Clause<T>> = vec![];
+        for (i, g) in circuit.gates.into_iter().enumerate() {
+            let i0 = usize::try_from(g.i0).unwrap();
+            let i1 = usize::try_from(g.i1).unwrap();
+            let kind = match g.func {
+                GateFunc::And | GateFunc::Nor | GateFunc::Nimpl => ClauseKind::And,
+                GateFunc::Xor => ClauseKind::Xor,
+            };
+
+            let (n0, n1) = match g.func {
+                GateFunc::Nor => (true, true),
+                GateFunc::Nimpl => (false, true),
+                GateFunc::And | GateFunc::Xor => (false, false),
+            };
+
+            // resolve first input of gate
+            let mut to_join = vec![];
+            if i0 >= input_len {
+                let cid0 = clause_ids[i0 - input_len].unwrap();
+                let clause0 = &mut clauses[cid0];
+                if used_outputs[i0 - input_len] != 2
+                    && (clause0.kind == ClauseKind::And
+                        && (g.func == GateFunc::And || g.func == GateFunc::Nimpl))
+                    || (clause0.kind == ClauseKind::Xor && g.func == GateFunc::Xor)
+                {
+                    // push literals to join and make clause empty
+                    to_join.extend(clause0.literals.drain(..).map(|(l, n)| (l, n ^ n0)));
+                    clause_ids[i0 - input_len] = None;
+                } else {
+                    to_join.push((T::try_from(cid0).unwrap(), n0));
+                }
+            } else {
+                to_join.push((g.i0, n0));
+            };
+
+            // resolve second input of gate
+            if i1 >= input_len {
+                let cid1 = clause_ids[i1 - input_len].unwrap();
+                let clause1 = &mut clauses[cid1];
+                if used_outputs[i1 - input_len] != 2
+                    && (clause1.kind == ClauseKind::And && g.func == GateFunc::And)
+                    || (clause1.kind == ClauseKind::Xor && g.func == GateFunc::Xor)
+                {
+                    // push literals to join and make clause empty
+                    to_join.extend(clause1.literals.drain(..).map(|(l, n)| (l, n ^ n1)));
+                    clause_ids[i1 - input_len] = None;
+                } else {
+                    to_join.push((T::try_from(cid1).unwrap(), n1));
+                }
+            } else {
+                to_join.push((g.i1, n1));
+            };
+
+            if let Some(cid) = clause_ids[i] {
+                clauses[cid].literals.extend(to_join);
+            } else {
+                // new clause
+                clause_ids[i] = Some(clauses.len());
+                clauses.push(Clause {
+                    kind,
+                    literals: to_join,
+                });
+            }
+        }
+        // filter and renumber clauses
+
         ClauseCircuit::new(circuit.input_len, [], []).unwrap()
     }
 }
