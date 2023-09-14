@@ -1490,7 +1490,6 @@ where
                 let mut top = stack.last_mut().unwrap();
                 let node_index = top.node;
                 let g = &circuit.gates[node_index];
-                //println!("VVVTop {:?}", top);
                 match top.way {
                     0 => {
                         if !visited[node_index] {
@@ -1608,9 +1607,6 @@ where
             }
         }
 
-        // println!("ClauseIds: {:?}", clause_ids);
-        // println!("Clauses: {:?}", clauses);
-
         let mut clause_trans = vec![0; clauses.len()];
         {
             for (i, clause_id) in clause_ids.iter().filter_map(|x| x.as_ref()).enumerate() {
@@ -1638,9 +1634,6 @@ where
                 *clause_id = clause_trans[*clause_id];
             }
         }
-
-        // println!("ClauseIds2: {:?}", clause_ids);
-        // println!("Clauses2: {:?}", clauses_new);
 
         ClauseCircuit::new(
             circuit.input_len,
