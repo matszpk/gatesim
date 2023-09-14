@@ -3200,5 +3200,53 @@ mod tests {
                 .unwrap(),
             )
         );
+        assert_eq!(
+            ClauseCircuit::new(
+                3,
+                [
+                    Clause::new_and([(0, false), (1, false)]),
+                    Clause::new_and([(2, false), (3, false)]),
+                    Clause::new_and([(3, true), (4, true)])
+                ],
+                [(5, false)]
+            )
+            .unwrap(),
+            ClauseCircuit::from(
+                Circuit::new(
+                    3,
+                    [
+                        Gate::new_and(0, 1),
+                        Gate::new_and(2, 3),
+                        Gate::new_nor(3, 4),
+                    ],
+                    [(5, false)]
+                )
+                .unwrap(),
+            )
+        );
+        assert_eq!(
+            ClauseCircuit::new(
+                4,
+                [
+                    Clause::new_and([(0, false), (1, false)]),
+                    Clause::new_and([(2, false), (3, false)]),
+                    Clause::new_and([(4, true), (5, true)])
+                ],
+                [(6, false)]
+            )
+            .unwrap(),
+            ClauseCircuit::from(
+                Circuit::new(
+                    4,
+                    [
+                        Gate::new_and(0, 1),
+                        Gate::new_and(2, 3),
+                        Gate::new_nor(4, 5),
+                    ],
+                    [(6, false)]
+                )
+                .unwrap(),
+            )
+        );
     }
 }
