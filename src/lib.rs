@@ -2913,6 +2913,17 @@ mod tests {
             )
             .unwrap(),
             ClauseCircuit::from(Circuit::new(2, [Gate::new_xor(0, 1),], [(2, true)]).unwrap())
-        )
+        );
+        assert_eq!(
+            ClauseCircuit::new(
+                2,
+                [Clause::new_xor([(0, false), (1, false),]),],
+                [(1, true), (2, false)]
+            )
+            .unwrap(),
+            ClauseCircuit::from(
+                Circuit::new(2, [Gate::new_xor(0, 1),], [(1, true), (2, false)]).unwrap()
+            )
+        );
     }
 }
