@@ -1438,7 +1438,7 @@ where
 
 impl<T: Clone + Copy + Ord + PartialEq + Eq> From<Circuit<T>> for ClauseCircuit<T>
 where
-    T: Default + TryFrom<usize> + Display + Debug,
+    T: Default + TryFrom<usize>,
     <T as TryFrom<usize>>::Error: Debug,
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
@@ -1608,31 +1608,43 @@ where
             }
         }
 
-        //println!("ClauseIds: {:?}", clause_ids);
-        //println!("Clauses: {:?}", clauses);
+        // println!("ClauseIds: {:?}", clause_ids);
+        // println!("Clauses: {:?}", clauses);
 
-        // reverse ordering
-        let clauses_len = clauses.len();
-        for clause_id in &mut clause_ids {
-            if let Some(clause_id) = clause_id {
-                *clause_id = clauses_len - *clause_id - 1;
+        let mut clause_trans = vec![0; clauses.len()];
+        {
+            for (i, clause_id) in clause_ids.iter().filter_map(|x| x.as_ref()).enumerate() {
+                clause_trans[*clause_id] = i;
             }
         }
+
         for clause in &mut clauses {
             for (l, _) in &mut clause.literals {
                 if *l >= circuit.input_len {
                     *l = T::try_from(
-                        input_len + clauses_len - (usize::try_from(*l).unwrap() - input_len) - 1,
+                        input_len + clause_trans[usize::try_from(*l).unwrap() - input_len],
                     )
                     .unwrap();
                 }
             }
         }
-        clauses.reverse();
+        let mut clauses_new = vec![];
+        for clause_id in clause_ids.iter().filter_map(|x| x.as_ref()) {
+            clauses_new.push(clauses[*clause_id].clone());
+        }
+
+        for clause_id in &mut clause_ids {
+            if let Some(clause_id) = clause_id {
+                *clause_id = clause_trans[*clause_id];
+            }
+        }
+
+        // println!("ClauseIds2: {:?}", clause_ids);
+        // println!("Clauses2: {:?}", clauses_new);
 
         ClauseCircuit::new(
             circuit.input_len,
-            clauses,
+            clauses_new,
             circuit.outputs.into_iter().map(|(l, n)| {
                 if l >= circuit.input_len {
                     (
@@ -3146,6 +3158,44 @@ mod tests {
                     3,
                     [Gate::new_and(0, 1), Gate::new_nimpl(2, 3),],
                     [(4, false)]
+                )
+                .unwrap(),
+            )
+        );
+        assert_eq!(
+            ClauseCircuit::new(
+                3,
+                [
+                    Clause::new_and([(0, false), (1, false)]),
+                    Clause::new_xor([(2, false), (3, false)])
+                ],
+                [(4, false)]
+            )
+            .unwrap(),
+            ClauseCircuit::from(
+                Circuit::new(3, [Gate::new_and(0, 1), Gate::new_xor(2, 3),], [(4, false)]).unwrap(),
+            )
+        );
+        assert_eq!(
+            ClauseCircuit::new(
+                3,
+                [
+                    Clause::new_and([(0, false), (1, false)]),
+                    Clause::new_and([(2, false), (3, false)]),
+                    Clause::new_xor([(3, false), (4, false)])
+                ],
+                [(5, false)]
+            )
+            .unwrap(),
+            ClauseCircuit::from(
+                Circuit::new(
+                    3,
+                    [
+                        Gate::new_and(0, 1),
+                        Gate::new_and(2, 3),
+                        Gate::new_xor(3, 4),
+                    ],
+                    [(5, false)]
                 )
                 .unwrap(),
             )
