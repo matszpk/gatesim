@@ -1438,7 +1438,7 @@ where
 
 impl<T: Clone + Copy + Ord + PartialEq + Eq> From<Circuit<T>> for ClauseCircuit<T>
 where
-    T: Default + TryFrom<usize>,
+    T: Default + TryFrom<usize> + Display + Debug,
     <T as TryFrom<usize>>::Error: Debug,
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
@@ -1462,6 +1462,7 @@ where
         }
 
         // collect clauses
+        #[derive(Clone, Copy, Debug)]
         struct StackEntry {
             node: usize,
             way: u8,
@@ -1485,6 +1486,7 @@ where
                 let mut top = stack.last_mut().unwrap();
                 let node_index = top.node;
                 let g = &circuit.gates[node_index];
+                //println!("VVVTop {:?}", top);
                 match top.way {
                     0 => {
                         if !visited[node_index] {
@@ -1512,8 +1514,8 @@ where
                         let kind = clauses[clause_id].kind;
 
                         let i0 = usize::try_from(g.i0).unwrap();
+                        top.way += 1;
                         if i0 >= input_len {
-                            top.way += 1;
                             let func0 = circuit.gates[i0 - input_len].func;
                             let node0_index = i0 - input_len;
                             let propagate_clause = used_outputs[node0_index] < 2
@@ -1549,8 +1551,8 @@ where
                         let kind = clauses[clause_id].kind;
 
                         let i1 = usize::try_from(g.i1).unwrap();
+                        top.way += 1;
                         if i1 >= input_len {
-                            top.way += 1;
                             let func1 = circuit.gates[i1 - input_len].func;
                             let node1_index = i1 - input_len;
                             let propagate_clause = used_outputs[node1_index] < 2
@@ -1586,6 +1588,9 @@ where
                 }
             }
         }
+        
+        //println!("ClauseIds: {:?}", clause_ids);
+        //println!("Clauses: {:?}", clauses);
 
         // reverse ordering
         let clauses_len = clauses.len();
@@ -2856,5 +2861,20 @@ mod tests {
                 i
             );
         }
+    }
+    
+    #[test]
+    fn test_clause_circuit_from_circuit() {
+        assert_eq!(
+            ClauseCircuit::new(
+                2,
+                [Clause::new_xor([(0, false), (1, false),]),],
+                [(2, true)]
+            )
+            .unwrap(),
+            ClauseCircuit::from(
+                Circuit::new(2, [Gate::new_xor(0, 1),], [(2, true)]).unwrap()
+            )
+        )
     }
 }
