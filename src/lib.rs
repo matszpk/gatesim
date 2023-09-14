@@ -1528,8 +1528,10 @@ where
                         let i0 = usize::try_from(g.i0).unwrap();
                         top.way += 1;
                         if i0 >= input_len {
+                            // put clause
                             let func0 = circuit.gates[i0 - input_len].func;
                             let node0_index = i0 - input_len;
+                            // determine whether clause must be propagated
                             let propagate_clause = used_outputs[node0_index] < 2
                                 && ((kind == ClauseKind::And
                                     && (g.func == GateFunc::And || g.func == GateFunc::Nimpl)
@@ -1550,6 +1552,7 @@ where
                                 put_clause_1: false,
                             });
                         } else {
+                            // put literal
                             clauses[clause_id]
                                 .literals
                                 .push((g.i0, g.func == GateFunc::Nor));
@@ -1562,8 +1565,10 @@ where
                         let i1 = usize::try_from(g.i1).unwrap();
                         top.way += 1;
                         if i1 >= input_len {
+                            // put clause
                             let func1 = circuit.gates[i1 - input_len].func;
                             let node1_index = i1 - input_len;
+                            // determine whether clause must be propagated
                             let propagate_clause = used_outputs[node1_index] < 2
                                 && ((kind == ClauseKind::And
                                     && g.func == GateFunc::And
@@ -1584,6 +1589,7 @@ where
                                 put_clause_1: false,
                             });
                         } else {
+                            // put literal
                             clauses[clause_id]
                                 .literals
                                 .push((g.i1, g.func == GateFunc::Nimpl || g.func == GateFunc::Nor));
