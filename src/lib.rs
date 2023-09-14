@@ -1470,8 +1470,8 @@ where
         let mut visited = vec![false; circuit.gates.len()];
         let mut clauses: Vec<Clause<T>> = vec![];
         let mut clause_ids = vec![None; circuit.gates.len()];
-        for (o, _) in circuit.outputs {
-            let o = usize::try_from(o).unwrap();
+        for (o, _) in &circuit.outputs {
+            let o = usize::try_from(*o).unwrap();
             if o < input_len {
                 continue;
             }
@@ -1587,7 +1587,44 @@ where
             }
         }
 
-        ClauseCircuit::new(circuit.input_len, [], []).unwrap()
+        // reverse ordering
+        let clauses_len = clauses.len();
+        for clause_id in &mut clause_ids {
+            if let Some(clause_id) = clause_id {
+                *clause_id = clauses_len - *clause_id - 1;
+            }
+        }
+        for clause in &mut clauses {
+            for (l, _) in &mut clause.literals {
+                if *l >= circuit.input_len {
+                    *l = T::try_from(
+                        input_len + clauses_len - (usize::try_from(*l).unwrap() - input_len) - 1,
+                    )
+                    .unwrap();
+                }
+            }
+        }
+        clauses.reverse();
+
+        ClauseCircuit::new(
+            circuit.input_len,
+            clauses,
+            circuit.outputs.into_iter().map(|(l, n)| {
+                if l >= circuit.input_len {
+                    (
+                        T::try_from(
+                            clause_ids[usize::try_from(l).unwrap() - input_len].unwrap()
+                                + input_len,
+                        )
+                        .unwrap(),
+                        n,
+                    )
+                } else {
+                    (l, n)
+                }
+            }),
+        )
+        .unwrap()
     }
 }
 
