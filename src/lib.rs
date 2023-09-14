@@ -1460,17 +1460,17 @@ where
                 }
             }
         }
+
         // collect clauses
-        // BAD: use output to traverse through tree use stack. slow algorithm!!!
         struct StackEntry {
             node: usize,
             way: u8,
             clause_id: Option<usize>,
         }
         let mut visited = vec![false; circuit.gates.len()];
-        let mut clause_ids: Vec<Option<usize>> = vec![None; circuit.gates.len()];
         let mut clauses: Vec<Clause<T>> = vec![];
-        for (o, n) in circuit.outputs {
+        let mut clause_ids = vec![None; circuit.gates.len()];
+        for (o, _) in circuit.outputs {
             let o = usize::try_from(o).unwrap();
             if o < input_len {
                 continue;
@@ -1493,25 +1493,91 @@ where
                             stack.pop();
                             continue;
                         }
+                        if top.clause_id.is_none() {
+                            // create new clause
+                            top.clause_id = Some(clauses.len());
+                            clause_ids[node_index] = Some(clauses.len());
+                            clauses.push(Clause {
+                                kind: match g.func {
+                                    GateFunc::And | GateFunc::Nor | GateFunc::Nimpl => {
+                                        ClauseKind::And
+                                    }
+                                    GateFunc::Xor => ClauseKind::Xor,
+                                },
+                                literals: vec![],
+                            });
+                        }
+
+                        let clause_id = top.clause_id.unwrap();
+                        let kind = clauses[clause_id].kind;
+
                         let i0 = usize::try_from(g.i0).unwrap();
                         if i0 >= input_len {
                             top.way += 1;
+                            let func0 = circuit.gates[i0 - input_len].func;
+                            let node0_index = i0 - input_len;
+                            let propagate_clause = used_outputs[node0_index] < 2
+                                && ((kind == ClauseKind::And
+                                    && (g.func == GateFunc::And || g.func == GateFunc::Nimpl)
+                                    && func0 != GateFunc::Xor)
+                                    || (kind == ClauseKind::Xor && func0 == GateFunc::Xor));
                             stack.push(StackEntry {
-                                node: i0 - input_len,
+                                node: node0_index,
                                 way: 0,
-                                clause_id: None,
+                                clause_id: if propagate_clause {
+                                    Some(clause_id)
+                                } else {
+                                    None
+                                },
                             });
+                            if !propagate_clause {
+                                // add literal to clause if no clause propagation
+                                clauses[clause_id].literals.push((
+                                    T::try_from(clause_ids[i0 - input_len].unwrap() + input_len)
+                                        .unwrap(),
+                                    g.func == GateFunc::Nor,
+                                ));
+                            }
+                        } else {
+                            clauses[clause_id]
+                                .literals
+                                .push((g.i0, g.func == GateFunc::Nor));
                         }
                     }
                     1 => {
+                        let clause_id = top.clause_id.unwrap();
+                        let kind = clauses[clause_id].kind;
+
                         let i1 = usize::try_from(g.i1).unwrap();
                         if i1 >= input_len {
                             top.way += 1;
+                            let func1 = circuit.gates[i1 - input_len].func;
+                            let node1_index = i1 - input_len;
+                            let propagate_clause = used_outputs[node1_index] < 2
+                                && ((kind == ClauseKind::And
+                                    && g.func == GateFunc::And
+                                    && func1 != GateFunc::Xor)
+                                    || (kind == ClauseKind::Xor && func1 == GateFunc::Xor));
                             stack.push(StackEntry {
-                                node: i1 - input_len,
+                                node: node1_index,
                                 way: 0,
-                                clause_id: None,
+                                clause_id: if propagate_clause {
+                                    Some(clause_id)
+                                } else {
+                                    None
+                                },
                             });
+                            if !propagate_clause {
+                                clauses[clause_id].literals.push((
+                                    T::try_from(clause_ids[i1 - input_len].unwrap() + input_len)
+                                        .unwrap(),
+                                    g.func == GateFunc::Nor,
+                                ));
+                            }
+                        } else {
+                            clauses[clause_id]
+                                .literals
+                                .push((g.i1, g.func == GateFunc::Nimpl || g.func == GateFunc::Nor));
                         }
                     }
                     _ => {
