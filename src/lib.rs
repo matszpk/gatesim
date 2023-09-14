@@ -800,8 +800,12 @@ where
             circuit.input_len,
             gates,
             circuit.outputs.into_iter().map(|(l, n)| {
-                let (l, cn) = clauses_gates[usize::try_from(l).unwrap() - input_len];
-                (l, cn ^ n)
+                if l >= circuit.input_len {
+                    let (l, cn) = clauses_gates[usize::try_from(l).unwrap() - input_len];
+                    (l, cn ^ n)
+                } else {
+                    (l, n)
+                }
             }),
         )
         .unwrap()
@@ -2225,6 +2229,18 @@ mod tests {
             Circuit::from(
                 ClauseCircuit::new(2, [Clause::new_xor([(0, true), (1, false),]),], [(2, true)])
                     .unwrap()
+            )
+        );
+
+        assert_eq!(
+            Circuit::new(2, [Gate::new_xor(0, 1),], [(0, false), (2, false)]).unwrap(),
+            Circuit::from(
+                ClauseCircuit::new(
+                    2,
+                    [Clause::new_xor([(0, true), (1, false),]),],
+                    [(0, false), (2, true)]
+                )
+                .unwrap()
             )
         );
 
