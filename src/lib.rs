@@ -1588,7 +1588,7 @@ where
                 }
             }
         }
-        
+
         //println!("ClauseIds: {:?}", clause_ids);
         //println!("Clauses: {:?}", clauses);
 
@@ -2862,9 +2862,49 @@ mod tests {
             );
         }
     }
-    
+
     #[test]
-    fn test_clause_circuit_from_circuit() {
+    fn test_clause_circuit_from_circuit_0() {
+        for (c, eg, ng) in [
+            (
+                Clause::new_and([(0, false), (1, false)]),
+                Gate::new_and(0, 1),
+                false,
+            ),
+            (
+                Clause::new_and([(1, false), (0, true)]),
+                Gate::new_nimpl(1, 0),
+                false,
+            ),
+            (
+                Clause::new_and([(0, false), (1, true)]),
+                Gate::new_nimpl(0, 1),
+                false,
+            ),
+            (
+                Clause::new_and([(0, true), (1, true)]),
+                Gate::new_nor(0, 1),
+                false,
+            ),
+            (
+                Clause::new_xor([(0, false), (1, false)]),
+                Gate::new_xor(0, 1),
+                false,
+            ),
+            (
+                Clause::new_xor([(0, false), (1, false)]),
+                Gate::new_xor(0, 1),
+                true,
+            ),
+        ] {
+            assert_eq!(
+                ClauseCircuit::new(2, [c.clone()], [(2, ng)]).unwrap(),
+                ClauseCircuit::from(Circuit::new(2, [eg], [(2, ng)]).unwrap()),
+                "testgc {}",
+                eg
+            );
+        }
+
         assert_eq!(
             ClauseCircuit::new(
                 2,
@@ -2872,9 +2912,7 @@ mod tests {
                 [(2, true)]
             )
             .unwrap(),
-            ClauseCircuit::from(
-                Circuit::new(2, [Gate::new_xor(0, 1),], [(2, true)]).unwrap()
-            )
+            ClauseCircuit::from(Circuit::new(2, [Gate::new_xor(0, 1),], [(2, true)]).unwrap())
         )
     }
 }
