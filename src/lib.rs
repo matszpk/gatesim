@@ -3278,5 +3278,29 @@ mod tests {
                 .unwrap(),
             )
         );
+
+        // evaluation test
+        let circuit = Circuit::new(
+            3,
+            [
+                Gate::new_xor(0, 1),
+                Gate::new_xor(2, 3),
+                Gate::new_and(2, 3),
+                Gate::new_and(0, 1),
+                Gate::new_nor(5, 6),
+            ],
+            [(4, false), (7, true)],
+        )
+        .unwrap();
+        let circuit = ClauseCircuit::from(circuit);
+        for i in 0..8 {
+            let expected = (i & 1) + ((i & 2) >> 1) + ((i & 4) >> 2);
+            assert_eq!(
+                vec![(expected & 1) != 0, (expected & 2) != 0],
+                circuit.eval([(i & 1) != 0, (i & 2) != 0, (i & 4) != 0]),
+                "test {}",
+                i
+            );
+        }
     }
 }
