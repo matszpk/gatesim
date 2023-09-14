@@ -1467,6 +1467,8 @@ where
             node: usize,
             way: u8,
             clause_id: Option<usize>,
+            put_clause_0: bool,
+            put_clause_1: bool,
         }
         let mut visited = vec![false; circuit.gates.len()];
         let mut clauses: Vec<Clause<T>> = vec![];
@@ -1481,6 +1483,8 @@ where
                 node: o - input_len,
                 way: 0,
                 clause_id: None,
+                put_clause_0: false,
+                put_clause_1: false,
             });
             while !stack.is_empty() {
                 let mut top = stack.last_mut().unwrap();
@@ -1523,6 +1527,9 @@ where
                                     && (g.func == GateFunc::And || g.func == GateFunc::Nimpl)
                                     && func0 != GateFunc::Xor)
                                     || (kind == ClauseKind::Xor && func0 == GateFunc::Xor));
+                            if !propagate_clause {
+                                top.put_clause_0 = true;
+                            }
                             stack.push(StackEntry {
                                 node: node0_index,
                                 way: 0,
@@ -1531,15 +1538,9 @@ where
                                 } else {
                                     None
                                 },
+                                put_clause_0: false,
+                                put_clause_1: false,
                             });
-                            if !propagate_clause {
-                                // add literal to clause if no clause propagation
-                                clauses[clause_id].literals.push((
-                                    T::try_from(clause_ids[i0 - input_len].unwrap() + input_len)
-                                        .unwrap(),
-                                    g.func == GateFunc::Nor,
-                                ));
-                            }
                         } else {
                             clauses[clause_id]
                                 .literals
@@ -1560,6 +1561,9 @@ where
                                     && g.func == GateFunc::And
                                     && func1 != GateFunc::Xor)
                                     || (kind == ClauseKind::Xor && func1 == GateFunc::Xor));
+                            if !propagate_clause {
+                                top.put_clause_1 = true;
+                            }
                             stack.push(StackEntry {
                                 node: node1_index,
                                 way: 0,
@@ -1568,14 +1572,9 @@ where
                                 } else {
                                     None
                                 },
+                                put_clause_0: false,
+                                put_clause_1: false,
                             });
-                            if !propagate_clause {
-                                clauses[clause_id].literals.push((
-                                    T::try_from(clause_ids[i1 - input_len].unwrap() + input_len)
-                                        .unwrap(),
-                                    g.func == GateFunc::Nor,
-                                ));
-                            }
                         } else {
                             clauses[clause_id]
                                 .literals
@@ -1583,6 +1582,26 @@ where
                         }
                     }
                     _ => {
+                        let i0 = usize::try_from(g.i0).unwrap();
+                        let i1 = usize::try_from(g.i1).unwrap();
+
+                        let clause_id = top.clause_id.unwrap();
+
+                        if top.put_clause_0 {
+                            // add literal to clause if no clause propagation
+                            clauses[clause_id].literals.push((
+                                T::try_from(clause_ids[i0 - input_len].unwrap() + input_len)
+                                    .unwrap(),
+                                g.func == GateFunc::Nor,
+                            ));
+                        }
+                        if top.put_clause_1 {
+                            clauses[clause_id].literals.push((
+                                T::try_from(clause_ids[i1 - input_len].unwrap() + input_len)
+                                    .unwrap(),
+                                g.func == GateFunc::Nor || g.func == GateFunc::Nimpl,
+                            ));
+                        }
                         stack.pop();
                     }
                 }
@@ -3094,6 +3113,41 @@ mod tests {
                     [(12, false)]
                 )
                 .unwrap()
+            )
+        );
+
+        assert_eq!(
+            ClauseCircuit::new(
+                3,
+                [Clause::new_and([(0, false), (1, false), (2, false)]),],
+                [(3, false)]
+            )
+            .unwrap(),
+            ClauseCircuit::from(
+                Circuit::new(3, [Gate::new_and(0, 1), Gate::new_and(3, 2),], [(4, false)]).unwrap(),
+            )
+        );
+    }
+
+    #[test]
+    fn test_clause_circuit_from_circuit() {
+        assert_eq!(
+            ClauseCircuit::new(
+                3,
+                [
+                    Clause::new_and([(0, false), (1, false)]),
+                    Clause::new_and([(2, false), (3, true)])
+                ],
+                [(4, false)]
+            )
+            .unwrap(),
+            ClauseCircuit::from(
+                Circuit::new(
+                    3,
+                    [Gate::new_and(0, 1), Gate::new_nimpl(2, 3),],
+                    [(4, false)]
+                )
+                .unwrap(),
             )
         );
     }
