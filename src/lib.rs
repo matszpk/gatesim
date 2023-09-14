@@ -2925,5 +2925,176 @@ mod tests {
                 Circuit::new(2, [Gate::new_xor(0, 1),], [(1, true), (2, false)]).unwrap()
             )
         );
+
+        assert_eq!(
+            ClauseCircuit::new(
+                4,
+                [Clause::new_and([
+                    (0, false),
+                    (1, false),
+                    (2, false),
+                    (3, false)
+                ]),],
+                [(4, false)]
+            )
+            .unwrap(),
+            ClauseCircuit::from(
+                Circuit::new(
+                    4,
+                    [
+                        Gate::new_and(0, 1),
+                        Gate::new_and(2, 3),
+                        Gate::new_and(4, 5)
+                    ],
+                    [(6, false)]
+                )
+                .unwrap()
+            )
+        );
+        assert_eq!(
+            ClauseCircuit::new(
+                4,
+                [Clause::new_and([
+                    (0, true),
+                    (1, true),
+                    (2, false),
+                    (3, true)
+                ]),],
+                [(4, false)]
+            )
+            .unwrap(),
+            ClauseCircuit::from(
+                Circuit::new(
+                    4,
+                    [
+                        Gate::new_nor(0, 1),
+                        Gate::new_nimpl(2, 3),
+                        Gate::new_and(4, 5)
+                    ],
+                    [(6, false)]
+                )
+                .unwrap()
+            )
+        );
+        assert_eq!(
+            ClauseCircuit::new(
+                4,
+                [Clause::new_xor([
+                    (0, false),
+                    (1, false),
+                    (2, false),
+                    (3, false)
+                ]),],
+                [(4, true)]
+            )
+            .unwrap(),
+            ClauseCircuit::from(
+                Circuit::new(
+                    4,
+                    [
+                        Gate::new_xor(0, 1),
+                        Gate::new_xor(2, 3),
+                        Gate::new_xor(4, 5)
+                    ],
+                    [(6, true)]
+                )
+                .unwrap()
+            )
+        );
+        assert_eq!(
+            ClauseCircuit::new(
+                7,
+                [Clause::new_and([
+                    (0, false),
+                    (1, false),
+                    (2, false),
+                    (3, false),
+                    (4, false),
+                    (5, false),
+                    (6, false),
+                ]),],
+                [(7, false)]
+            )
+            .unwrap(),
+            ClauseCircuit::from(
+                Circuit::new(
+                    7,
+                    [
+                        Gate::new_and(0, 1),
+                        Gate::new_and(2, 3),
+                        Gate::new_and(4, 5),
+                        Gate::new_and(7, 8),
+                        Gate::new_and(9, 6),
+                        Gate::new_and(10, 11),
+                    ],
+                    [(12, false)]
+                )
+                .unwrap()
+            )
+        );
+
+        assert_eq!(
+            ClauseCircuit::new(
+                7,
+                [Clause::new_and([
+                    (6, false),
+                    (5, false),
+                    (4, false),
+                    (3, false),
+                    (2, false),
+                    (0, false),
+                    (1, false),
+                ]),],
+                [(7, false)]
+            )
+            .unwrap(),
+            ClauseCircuit::from(
+                Circuit::new(
+                    7,
+                    [
+                        Gate::new_and(0, 1),
+                        Gate::new_and(2, 7),
+                        Gate::new_and(3, 8),
+                        Gate::new_and(4, 9),
+                        Gate::new_and(5, 10),
+                        Gate::new_and(6, 11),
+                    ],
+                    [(12, false)]
+                )
+                .unwrap()
+            )
+        );
+
+        assert_eq!(
+            ClauseCircuit::new(
+                7,
+                [Clause::new_and([
+                    (0, false),
+                    (1, false),
+                    (2, false),
+                    (3, false),
+                    (4, false),
+                    (5, false),
+                    (6, false),
+                ]),],
+                [(7, false)]
+            )
+            .unwrap(),
+            ClauseCircuit::from(
+                Circuit::new(
+                    7,
+                    [
+                        Gate::new_and(0, 1),
+                        Gate::new_and(7, 2),
+                        Gate::new_and(8, 3),
+                        Gate::new_and(9, 4),
+                        Gate::new_and(10, 5),
+                        Gate::new_and(11, 6),
+                    ],
+                    [(12, false)]
+                )
+                .unwrap()
+            )
+        );
     }
 }
