@@ -3180,6 +3180,61 @@ mod tests {
                 .unwrap()
             )
         );
+        assert_eq!(
+            Circuit::new(3, [Gate::new_and(0, 1), Gate::new_and(3, 2),], [(4, false)]).unwrap(),
+            Circuit::from_seq(
+                ClauseCircuit::new(
+                    3,
+                    [Clause::new_and([(0, false), (1, false), (2, false)]),],
+                    [(3, false)]
+                )
+                .unwrap()
+            )
+        );
+        assert_eq!(
+            Circuit::new(
+                3,
+                [Gate::new_and(0, 1), Gate::new_nimpl(3, 2),],
+                [(4, false)]
+            )
+            .unwrap(),
+            Circuit::from_seq(
+                ClauseCircuit::new(
+                    3,
+                    [Clause::new_and([(0, false), (1, false), (2, true)]),],
+                    [(3, false)]
+                )
+                .unwrap()
+            )
+        );
+
+        assert_eq!(
+            Circuit::new(
+                5,
+                [
+                    Gate::new_nimpl(0, 1),
+                    Gate::new_and(5, 2),
+                    Gate::new_nimpl(6, 3),
+                    Gate::new_and(7, 4),
+                ],
+                [(8, false)]
+            )
+            .unwrap(),
+            Circuit::from_seq(
+                ClauseCircuit::new(
+                    5,
+                    [Clause::new_and([
+                        (0, false),
+                        (1, true),
+                        (2, false),
+                        (3, true),
+                        (4, false)
+                    ]),],
+                    [(5, false)]
+                )
+                .unwrap()
+            )
+        );
     }
 
     #[test]
