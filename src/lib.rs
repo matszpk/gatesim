@@ -816,6 +816,107 @@ where
     }
 }
 
+impl<T: Clone + Copy + Ord + PartialEq + Eq> Circuit<T>
+where
+    T: Default + TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+{
+    pub fn from_seq(circuit: ClauseCircuit<T>) -> Self {
+        let mut clauses_gates: Vec<(T, bool)> = vec![];
+        let mut gates = vec![];
+        let input_len = usize::try_from(circuit.input_len).unwrap();
+        for clause in circuit.clauses {
+            // organize gates in sequential way
+
+            // routine to get gate with clause inputs
+            let get_gate = |l0, n0, l1, n1| {
+                let (l0, n0) = if l0 < circuit.input_len {
+                    (l0, n0)
+                } else {
+                    let (i0, in0) = clauses_gates[usize::try_from(l0).unwrap() - input_len];
+                    (i0, n0 ^ in0)
+                };
+                let (l1, n1) = if l1 < circuit.input_len {
+                    (l1, n1)
+                } else {
+                    let (i1, in1) = clauses_gates[usize::try_from(l1).unwrap() - input_len];
+                    (i1, n1 ^ in1)
+                };
+                match clause.kind {
+                    ClauseKind::And => {
+                        if n0 {
+                            if n1 {
+                                Gate::new_nor(l0, l1)
+                            } else {
+                                Gate::new_nimpl(l1, l0)
+                            }
+                        } else {
+                            if n1 {
+                                Gate::new_nimpl(l0, l1)
+                            } else {
+                                Gate::new_and(l0, l1)
+                            }
+                        }
+                    }
+                    ClauseKind::Xor => Gate::new_xor(l0, l1),
+                }
+            };
+            let clause_neg = if clause.kind == ClauseKind::Xor {
+                clause.literals.iter().fold(false, |a, (_, n)| a ^ n)
+            } else {
+                false
+            };
+
+            {
+                let (l0, n0) = clause.literals[0];
+                let (l1, n1) = clause.literals[1];
+                gates.push(get_gate(l0, n0, l1, n1));
+            }
+            for &(l0, n0) in &clause.literals[2..] {
+                let cur_id_0 = T::try_from(input_len + gates.len() - 1).unwrap();
+                let (l0, n0) = if l0 < circuit.input_len {
+                    (l0, n0)
+                } else {
+                    let (i0, in0) = clauses_gates[usize::try_from(l0).unwrap() - input_len];
+                    (i0, n0 ^ in0)
+                };
+                gates.push(Gate {
+                    func: match clause.kind {
+                        ClauseKind::And => {
+                            if n0 {
+                                GateFunc::Nimpl
+                            } else {
+                                GateFunc::And
+                            }
+                        }
+                        ClauseKind::Xor => GateFunc::Xor,
+                    },
+                    i0: cur_id_0,
+                    i1: l0,
+                });
+            }
+
+            let final_gate_id = T::try_from(input_len + gates.len() - 1).unwrap();
+            clauses_gates.push((final_gate_id, clause_neg));
+        }
+        Circuit::new(
+            circuit.input_len,
+            gates,
+            circuit.outputs.into_iter().map(|(l, n)| {
+                if l >= circuit.input_len {
+                    let (l, cn) = clauses_gates[usize::try_from(l).unwrap() - input_len];
+                    (l, cn ^ n)
+                } else {
+                    (l, n)
+                }
+            }),
+        )
+        .unwrap()
+    }
+}
+
 // Clause circuits
 
 #[derive(Error, Debug)]
@@ -2942,6 +3043,143 @@ mod tests {
                 i
             );
         }
+    }
+
+    #[test]
+    fn test_circuit_from_seq_clause_circuit_0() {
+        for (c, eg, ng) in [
+            (
+                Clause::new_and([(0, false), (1, false)]),
+                Gate::new_and(0, 1),
+                false,
+            ),
+            (
+                Clause::new_and([(0, true), (1, false)]),
+                Gate::new_nimpl(1, 0),
+                false,
+            ),
+            (
+                Clause::new_and([(0, false), (1, true)]),
+                Gate::new_nimpl(0, 1),
+                false,
+            ),
+            (
+                Clause::new_and([(0, true), (1, true)]),
+                Gate::new_nor(0, 1),
+                false,
+            ),
+            (
+                Clause::new_xor([(0, false), (1, false)]),
+                Gate::new_xor(0, 1),
+                false,
+            ),
+            (
+                Clause::new_xor([(0, true), (1, false)]),
+                Gate::new_xor(0, 1),
+                true,
+            ),
+            (
+                Clause::new_xor([(0, false), (1, true)]),
+                Gate::new_xor(0, 1),
+                true,
+            ),
+            (
+                Clause::new_xor([(0, true), (1, true)]),
+                Gate::new_xor(0, 1),
+                false,
+            ),
+        ] {
+            assert_eq!(
+                Circuit::new(2, [eg], [(2, ng)]).unwrap(),
+                Circuit::from_seq(ClauseCircuit::new(2, [c.clone()], [(2, false)]).unwrap()),
+                "testgc {}",
+                c
+            );
+        }
+
+        // include not-negated clause and negated output
+        assert_eq!(
+            Circuit::new(2, [Gate::new_xor(0, 1),], [(2, true)]).unwrap(),
+            Circuit::from_seq(
+                ClauseCircuit::new(
+                    2,
+                    [Clause::new_xor([(0, false), (1, false),]),],
+                    [(2, true)]
+                )
+                .unwrap()
+            )
+        );
+        // include negated clause and negated output
+        assert_eq!(
+            Circuit::new(2, [Gate::new_xor(0, 1),], [(2, false)]).unwrap(),
+            Circuit::from_seq(
+                ClauseCircuit::new(2, [Clause::new_xor([(0, true), (1, false),]),], [(2, true)])
+                    .unwrap()
+            )
+        );
+
+        assert_eq!(
+            Circuit::new(2, [Gate::new_xor(0, 1),], [(0, false), (2, false)]).unwrap(),
+            Circuit::from_seq(
+                ClauseCircuit::new(
+                    2,
+                    [Clause::new_xor([(0, true), (1, false),]),],
+                    [(0, false), (2, true)]
+                )
+                .unwrap()
+            )
+        );
+
+        assert_eq!(
+            Circuit::new(
+                4,
+                [
+                    Gate::new_and(0, 1),
+                    Gate::new_and(4, 2),
+                    Gate::new_and(5, 3)
+                ],
+                [(6, false)]
+            )
+            .unwrap(),
+            Circuit::from_seq(
+                ClauseCircuit::new(
+                    4,
+                    [Clause::new_and([
+                        (0, false),
+                        (1, false),
+                        (2, false),
+                        (3, false)
+                    ]),],
+                    [(4, false)]
+                )
+                .unwrap()
+            )
+        );
+        assert_eq!(
+            Circuit::new(
+                4,
+                [
+                    Gate::new_nimpl(1, 0),
+                    Gate::new_and(4, 2),
+                    Gate::new_nimpl(5, 3)
+                ],
+                [(6, false)]
+            )
+            .unwrap(),
+            Circuit::from_seq(
+                ClauseCircuit::new(
+                    4,
+                    [Clause::new_and([
+                        (0, true),
+                        (1, false),
+                        (2, false),
+                        (3, true)
+                    ]),],
+                    [(4, false)]
+                )
+                .unwrap()
+            )
+        );
     }
 
     #[test]
