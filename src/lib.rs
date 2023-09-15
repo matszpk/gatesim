@@ -1622,6 +1622,7 @@ where
             }
         }
 
+        // make clause id translation table
         let mut clause_trans = vec![0; clauses.len()];
         {
             for (i, clause_id) in clause_ids.iter().filter_map(|x| x.as_ref()).enumerate() {
@@ -1629,6 +1630,7 @@ where
             }
         }
 
+        // translate clauses ids by using translation table
         for clause in &mut clauses {
             for (l, _) in &mut clause.literals {
                 if *l >= circuit.input_len {
@@ -1639,11 +1641,12 @@ where
                 }
             }
         }
+        // reorder clauses by using translation table
         let mut clauses_new = vec![];
         for clause_id in clause_ids.iter().filter_map(|x| x.as_ref()) {
             clauses_new.push(clauses[*clause_id].clone());
         }
-
+        // finally translate same clause_ids
         for clause_id in &mut clause_ids {
             if let Some(clause_id) = clause_id {
                 *clause_id = clause_trans[*clause_id];
