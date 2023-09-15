@@ -62,6 +62,7 @@ impl<T: Clone + Copy + Debug> Display for Gate<T> {
 
 impl<T: Clone + Copy + PartialOrd> PartialOrd for Gate<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        // order gate inputs by id inputs. selfrevord - true if reversed order of gates input
         let (selfi0, selfi1, selfrevord) = if let Some(ord) = self.i0.partial_cmp(&self.i1) {
             if ord == Ordering::Less {
                 (self.i0, self.i1, false)
@@ -71,6 +72,7 @@ impl<T: Clone + Copy + PartialOrd> PartialOrd for Gate<T> {
         } else {
             (self.i1, self.i0, true)
         };
+        // order gate inputs by id inputs. selfrevord - true if reversed order of gates input
         let (otheri0, otheri1, otherrevord) = if let Some(ord) = other.i0.partial_cmp(&other.i1) {
             if ord == Ordering::Less {
                 (other.i0, other.i1, false)
@@ -274,6 +276,7 @@ where
         for (i, (v, n)) in self.outputs.iter().enumerate() {
             output_map[usize::try_from(*v).unwrap()] = (i, *n, true);
         }
+        // first circuit inputs
         for i in 0..input_len {
             if output_map[i].2 {
                 write!(
@@ -290,6 +293,7 @@ where
                 write!(f, " ")?;
             }
         }
+        // next circuit gates
         for (i, g) in self.gates.iter().enumerate() {
             if output_map[input_len + i].2 {
                 write!(
@@ -1058,6 +1062,7 @@ where
         for (i, (v, n)) in self.outputs.iter().enumerate() {
             output_map[usize::try_from(*v).unwrap()] = (i, *n, true);
         }
+        // first circuit inputs
         for i in 0..input_len {
             if output_map[i].2 {
                 write!(
@@ -1074,6 +1079,7 @@ where
                 write!(f, " ")?;
             }
         }
+        // next circuit clauses
         for (i, c) in self.clauses.iter().enumerate() {
             if output_map[input_len + i].2 {
                 write!(
