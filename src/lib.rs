@@ -3733,6 +3733,38 @@ mod tests {
                 .unwrap(),
             )
         );
+
+        assert_eq!(
+            ClauseCircuit::new(
+                6,
+                [
+                    Clause::new_and([(2, false), (0, false), (1, false)]),
+                    Clause::new_xor([(5, false), (3, false), (4, false)]),
+                    Clause::new_and([(6, false), (7, false)]),
+                    Clause::new_and([(6, true), (7, true)]),
+                    Clause::new_xor([(8, false), (9, false)])
+                ],
+                [(10, false)]
+            )
+            .unwrap(),
+            ClauseCircuit::from(
+                Circuit::new(
+                    6,
+                    [
+                        Gate::new_and(0, 1),
+                        Gate::new_and(2, 6),
+                        Gate::new_xor(3, 4),
+                        Gate::new_xor(5, 8),
+                        Gate::new_and(7, 9),
+                        Gate::new_nor(7, 9),
+                        Gate::new_xor(10, 11),
+                    ],
+                    [(12, false)]
+                )
+                .unwrap(),
+            )
+        );
+
         assert_eq!(
             ClauseCircuit::new(
                 9,
