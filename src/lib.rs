@@ -967,6 +967,11 @@ impl<T> Clause<T> {
     pub fn len(&self) -> usize {
         self.literals.len()
     }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.literals.clear();
+    }
 }
 
 impl<T: Clone + Copy + Debug> Display for Clause<T> {
