@@ -1736,10 +1736,8 @@ where
 
         // make clause id translation table
         let mut clause_trans = vec![0; clauses.len()];
-        {
-            for (i, clause_id) in clause_ids.iter().filter_map(|x| x.as_ref()).enumerate() {
-                clause_trans[*clause_id] = i;
-            }
+        for (i, clause_id) in clause_ids.iter().filter_map(|x| x.as_ref()).enumerate() {
+            clause_trans[*clause_id] = i;
         }
 
         // translate clauses ids by using translation table
