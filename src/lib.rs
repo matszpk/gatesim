@@ -1608,7 +1608,7 @@ where
                 put_clause_1: false,
             });
             while !stack.is_empty() {
-                let mut top = stack.last_mut().unwrap();
+                let top = stack.last_mut().unwrap();
                 let node_index = top.node;
                 let g = &circuit.gates[node_index];
                 match top.way {
