@@ -388,7 +388,7 @@ where
                                             break;
                                         }
                                         _ => {
-                                            panic!("Unexpected");
+                                            return Err(CircuitParseError::SyntaxError);
                                         }
                                     };
                                 } else {
@@ -401,7 +401,7 @@ where
                                 break;
                             }
                             _ => {
-                                panic!("Unexpected");
+                                return Err(CircuitParseError::SyntaxError);
                             }
                         }
                     } else {
@@ -469,7 +469,7 @@ where
                                     break;
                                 }
                                 _ => {
-                                    panic!("Unexpected");
+                                    return Err(CircuitParseError::SyntaxError);
                                 }
                             };
                         } else {
@@ -481,7 +481,7 @@ where
                         break;
                     }
                     _ => {
-                        panic!("Unexpected");
+                        return Err(CircuitParseError::SyntaxError);
                     }
                 }
             }
@@ -1429,7 +1429,7 @@ where
                                             break;
                                         }
                                         _ => {
-                                            panic!("Unexpected");
+                                            return Err(ClauseCircuitParseError::SyntaxError);
                                         }
                                     };
                                 } else {
@@ -1442,7 +1442,7 @@ where
                                 break;
                             }
                             _ => {
-                                panic!("Unexpected");
+                                return Err(ClauseCircuitParseError::SyntaxError);
                             }
                         }
                     } else {
@@ -1510,7 +1510,7 @@ where
                                     break;
                                 }
                                 _ => {
-                                    panic!("Unexpected");
+                                    return Err(ClauseCircuitParseError::SyntaxError);
                                 }
                             };
                         } else {
@@ -1522,7 +1522,7 @@ where
                         break;
                     }
                     _ => {
-                        panic!("Unexpected");
+                        return Err(ClauseCircuitParseError::SyntaxError);
                     }
                 }
             }
