@@ -1032,36 +1032,31 @@ where
     <usize as TryFrom<T>>::Error: Debug,
 {
     /// Evaluate clause. Get values of argument from method arguments.
-    /// Empty AND clause is always evaluated as false.
     #[inline]
     pub fn eval_args<Out>(&self, args: impl IntoIterator<Item = Out>) -> Out
     where
         Out: BitAnd<Output = Out> + BitXor<Output = Out> + Not<Output = Out> + Clone + Default,
     {
         let mut args = args.into_iter();
-        if let Some(arg) = args.next() {
-            let mut out = if self.literals[0].1 { !arg } else { arg };
-            match self.kind {
-                ClauseKind::And => {
-                    for (i, x) in args.enumerate() {
-                        out = out & if self.literals[i + 1].1 { !x } else { x };
-                    }
-                    out
+        match self.kind {
+            ClauseKind::And => {
+                let mut out = !Out::default();
+                for (i, x) in args.enumerate() {
+                    out = out & if self.literals[i].1 { !x } else { x };
                 }
-                ClauseKind::Xor => {
-                    for (i, x) in args.enumerate() {
-                        out = out ^ if self.literals[i + 1].1 { !x } else { x };
-                    }
-                    out
-                }
+                out
             }
-        } else {
-            Out::default()
+            ClauseKind::Xor => {
+                let mut out = Out::default();
+                for (i, x) in args.enumerate() {
+                    out = out ^ if self.literals[i].1 { !x } else { x };
+                }
+                out
+            }
         }
     }
 
     /// Evaluate clause. Get values of argument from method arguments.
-    /// Empty AND clause is always evaluated as false.
     #[inline]
     pub fn eval<Out>(&self, values: &[Out]) -> Out
     where
@@ -1074,21 +1069,12 @@ where
     {
         match self.kind {
             ClauseKind::And => {
-                if !self.literals.is_empty() {
-                    let l = usize::try_from(self.literals[0].0).unwrap();
-                    let mut out = if self.literals[0].1 {
-                        !values[l]
-                    } else {
-                        values[l]
-                    };
-                    for (l, n) in self.literals.iter().skip(1) {
-                        let l = usize::try_from(*l).unwrap();
-                        out = out & if *n { !values[l] } else { values[l] };
-                    }
-                    out
-                } else {
-                    Out::default()
+                let mut out = !Out::default();
+                for (l, n) in self.literals.iter() {
+                    let l = usize::try_from(*l).unwrap();
+                    out = out & if *n { !values[l] } else { values[l] };
                 }
+                out
             }
             ClauseKind::Xor => {
                 let mut out = Out::default();

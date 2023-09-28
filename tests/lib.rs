@@ -384,7 +384,7 @@ fn test_clause() {
     }
 
     for (c, exp) in [
-        (Clause::<u8>::new_and([]), 0b00000000),
+        (Clause::<u8>::new_and([]), 0b11111111),
         (Clause::<u8>::new_xor([]), 0b00000000),
     ] {
         assert_eq!(exp, c.eval_args::<u8>([]) & 0b11111111);
@@ -411,7 +411,7 @@ fn test_clause() {
             Clause::new_and([(2, false), (1, true), (0, true)]),
             0b00010000,
         ),
-        (Clause::new_and([]), 0b00000000),
+        (Clause::new_and([]), 0b11111111),
         (
             Clause::new_xor([(0, false), (1, false), (2, false)]),
             0b10010110,
