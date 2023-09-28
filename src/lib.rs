@@ -703,7 +703,14 @@ where
             let mut c_gates = vec![];
 
             let clause_neg = if clause.kind == ClauseKind::Xor {
-                clause.literals.iter().fold(false, |a, (_, n)| a ^ n)
+                clause.literals.iter().fold(false, |a, (l, n)| {
+                    if *l < circuit.input_len {
+                        a ^ n
+                    } else {
+                        let (_, in0) = clauses_gates[usize::try_from(*l).unwrap() - input_len];
+                        a ^ n ^ in0
+                    }
+                })
             } else {
                 false
             };
@@ -864,7 +871,14 @@ where
                 }
             };
             let clause_neg = if clause.kind == ClauseKind::Xor {
-                clause.literals.iter().fold(false, |a, (_, n)| a ^ n)
+                clause.literals.iter().fold(false, |a, (l, n)| {
+                    if *l < circuit.input_len {
+                        a ^ n
+                    } else {
+                        let (_, in0) = clauses_gates[usize::try_from(*l).unwrap() - input_len];
+                        a ^ n ^ in0
+                    }
+                })
             } else {
                 false
             };

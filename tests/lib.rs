@@ -1192,6 +1192,42 @@ fn test_circuit_from_clause_circuit() {
         )
     );
 
+    assert_eq!(
+        Circuit::new(
+            4,
+            [
+                Gate::new_and(0, 1),
+                Gate::new_and(4, 2),
+                Gate::new_xor(0, 1),
+                Gate::new_xor(3, 5),
+                Gate::new_xor(6, 7),
+                Gate::new_nor(1, 2),
+                Gate::new_and(9, 3),
+                Gate::new_xor(5, 8),
+                Gate::new_xor(11, 3),
+                Gate::new_nimpl(8, 5),
+                Gate::new_nimpl(12, 10),
+                Gate::new_and(13, 14),
+            ],
+            [(5, false), (15, true)]
+        )
+        .unwrap(),
+        Circuit::from(
+            ClauseCircuit::new(
+                4,
+                [
+                    Clause::new_and([(0, false), (1, false), (2, false),]),
+                    Clause::new_xor([(0, false), (1, true), (3, false), (4, false)]),
+                    Clause::new_and([(1, true), (2, true), (3, false),]),
+                    Clause::new_xor([(4, false), (5, true), (3, false),]),
+                    Clause::new_and([(4, true), (5, true), (6, true), (7, false)]),
+                ],
+                [(4, false), (8, true)]
+            )
+            .unwrap()
+        )
+    );
+
     // evaluation test
     let circuit = ClauseCircuit::new(
         3,
@@ -1554,6 +1590,42 @@ fn test_circuit_from_seq_clause_circuit() {
                     Clause::new_and([(4, true), (5, false), (6, false),]),
                 ],
                 [(4, false), (7, false)]
+            )
+            .unwrap()
+        )
+    );
+
+    assert_eq!(
+        Circuit::new(
+            4,
+            [
+                Gate::new_and(0, 1),
+                Gate::new_and(4, 2),
+                Gate::new_xor(0, 1),
+                Gate::new_xor(6, 3),
+                Gate::new_xor(7, 5),
+                Gate::new_nor(1, 2),
+                Gate::new_and(9, 3),
+                Gate::new_xor(5, 8),
+                Gate::new_xor(11, 3),
+                Gate::new_nimpl(8, 5),
+                Gate::new_nimpl(13, 10),
+                Gate::new_and(14, 12),
+            ],
+            [(5, false), (15, true)]
+        )
+        .unwrap(),
+        Circuit::from_seq(
+            ClauseCircuit::new(
+                4,
+                [
+                    Clause::new_and([(0, false), (1, false), (2, false),]),
+                    Clause::new_xor([(0, false), (1, true), (3, false), (4, false)]),
+                    Clause::new_and([(1, true), (2, true), (3, false),]),
+                    Clause::new_xor([(4, false), (5, true), (3, false),]),
+                    Clause::new_and([(4, true), (5, true), (6, true), (7, false)]),
+                ],
+                [(4, false), (8, true)]
             )
             .unwrap()
         )
