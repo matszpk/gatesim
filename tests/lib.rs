@@ -264,6 +264,10 @@ fn test_circuit_from_str() {
         Circuit::from_str("{0:0}(1)").unwrap()
     );
     assert_eq!(
+        Circuit::new(1, [], [(0, false)]).unwrap(),
+        Circuit::from_str("{0:0}").unwrap()
+    );
+    assert_eq!(
         Circuit::new(
             3,
             [
@@ -316,6 +320,20 @@ fn test_circuit_from_str() {
         )
         .unwrap(),
         Circuit::from_str("{1 2:2 0 and(0,1) nor(0,2):1 xor(3,4) nimpl(1,5):0n}(3)").unwrap()
+    );
+    assert_eq!(
+        Circuit::new(
+            3,
+            [
+                Gate::new_and(0, 1),
+                Gate::new_nor(0, 2),
+                Gate::new_xor(3, 4),
+                Gate::new_nimpl(1, 5),
+            ],
+            [(6, true), (4, false), (2, false)]
+        )
+        .unwrap(),
+        Circuit::from_str("{1 2:2 0 and(0,1) nor(0,2):1 xor(3,4) nimpl(1,5):0n}").unwrap()
     );
     assert_eq!(
         Circuit::new(
@@ -659,6 +677,10 @@ fn test_clause_circuit_from_str() {
         ClauseCircuit::from_str("{0:0}(1)").unwrap()
     );
     assert_eq!(
+        ClauseCircuit::new(1, [], [(0, false)]).unwrap(),
+        ClauseCircuit::from_str("{0:0}").unwrap()
+    );
+    assert_eq!(
         ClauseCircuit::new(
             3,
             [
@@ -696,6 +718,19 @@ fn test_clause_circuit_from_str() {
         )
         .unwrap(),
         ClauseCircuit::from_str("{0 1 2:2n and(0,1) and(0n,1,2n):1n xor(3,4):0}(3)").unwrap()
+    );
+    assert_eq!(
+        ClauseCircuit::new(
+            3,
+            [
+                Clause::new_and([(0, false), (1, false)]),
+                Clause::new_and([(0, true), (1, false), (2, true)]),
+                Clause::new_xor([(3, false), (4, false)]),
+            ],
+            [(5, false), (4, true), (2, true)]
+        )
+        .unwrap(),
+        ClauseCircuit::from_str("{0 1 2:2n and(0,1) and(0n,1,2n):1n xor(3,4):0}").unwrap()
     );
 }
 

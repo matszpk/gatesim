@@ -500,6 +500,9 @@ where
                         if res_input_len != T::try_from(input_len).unwrap() {
                             return Err(CircuitParseError::Invalid);
                         }
+                        if !r[p + 1..].is_empty() {
+                            return Err(CircuitParseError::SyntaxError);
+                        }
                     } else {
                         return Err(CircuitParseError::SyntaxError);
                     }
@@ -1526,6 +1529,9 @@ where
                         let res_input_len = T::from_str(d)?;
                         if res_input_len != T::try_from(input_len).unwrap() {
                             return Err(ClauseCircuitParseError::Invalid);
+                        }
+                        if !r[p + 1..].is_empty() {
+                            return Err(ClauseCircuitParseError::SyntaxError);
                         }
                     } else {
                         return Err(ClauseCircuitParseError::SyntaxError);
