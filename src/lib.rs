@@ -1032,6 +1032,7 @@ where
     <usize as TryFrom<T>>::Error: Debug,
 {
     /// Evaluate clause. Get values of argument from method arguments.
+    /// Empty AND clause is always evaluated as false.
     #[inline]
     pub fn eval_args<Out>(&self, args: impl IntoIterator<Item = Out>) -> Out
     where
@@ -1060,6 +1061,7 @@ where
     }
 
     /// Evaluate clause. Get values of argument from method arguments.
+    /// Empty AND clause is always evaluated as false.
     #[inline]
     pub fn eval<Out>(&self, values: &[Out]) -> Out
     where
