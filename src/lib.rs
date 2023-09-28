@@ -1730,6 +1730,7 @@ where
                             ));
                         }
                         if top.put_clause_1 {
+                            // add literal to clause if no clause propagation
                             clauses[clause_id].literals.push((
                                 T::try_from(clause_ids[i1 - input_len].unwrap() + input_len)
                                     .unwrap(),
