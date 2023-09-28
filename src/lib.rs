@@ -1037,7 +1037,7 @@ where
     where
         Out: BitAnd<Output = Out> + BitXor<Output = Out> + Not<Output = Out> + Clone + Default,
     {
-        let mut args = args.into_iter();
+        let args = args.into_iter();
         match self.kind {
             ClauseKind::And => {
                 let mut out = !Out::default();
