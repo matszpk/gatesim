@@ -779,7 +779,7 @@ where
                 }
                 c_gates = c_gates_new;
             } else {
-                // organize in one level
+                // organize in full filled levels
                 for j in 0..(clause.len() >> 1) {
                     let (l0, n0) = clause.literals[2 * j];
                     let (l1, n1) = clause.literals[2 * j + 1];
