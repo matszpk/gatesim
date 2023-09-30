@@ -270,6 +270,7 @@ where
     <usize as TryFrom<T>>::Error: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        // TODO: add support for duplicates circuit outputs
         let input_len = usize::try_from(self.input_len).unwrap();
         let mut output_map = vec![(0, false, false); input_len + self.gates.len()];
         write!(f, "{{")?;
@@ -324,6 +325,7 @@ where
     type Err = CircuitParseError<<T as FromStr>::Err>;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
+        // TODO: add support for duplicates circuit outputs
         if src.starts_with("{") {
             let mut input_len = T::default();
             let mut input_touched = vec![];
@@ -1167,6 +1169,7 @@ where
     <usize as TryFrom<T>>::Error: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        // TODO: add support for duplicates circuit outputs
         let input_len = usize::try_from(self.input_len).unwrap();
         let mut output_map = vec![(0, false, false); input_len + self.clauses.len()];
         write!(f, "{{")?;
@@ -1354,6 +1357,7 @@ where
     type Err = ClauseCircuitParseError<<T as FromStr>::Err>;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
+        // TODO: add support for duplicates circuit outputs
         if src.starts_with("{") {
             let mut input_len = T::default();
             let mut input_touched = vec![];
