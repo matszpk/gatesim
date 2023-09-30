@@ -270,25 +270,17 @@ where
     <usize as TryFrom<T>>::Error: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
-        // TODO: add support for duplicates circuit outputs
         let input_len = usize::try_from(self.input_len).unwrap();
-        let mut output_map = vec![(0, false, false); input_len + self.gates.len()];
+        let mut output_map = vec![vec![]; input_len + self.gates.len()];
         write!(f, "{{")?;
         for (i, (v, n)) in self.outputs.iter().enumerate() {
-            output_map[usize::try_from(*v).unwrap()] = (i, *n, true);
+            output_map[usize::try_from(*v).unwrap()].push((i, *n));
         }
         // first circuit inputs
         for i in 0..input_len {
-            if output_map[i].2 {
-                write!(
-                    f,
-                    "{}:{}{}",
-                    i,
-                    output_map[i].0,
-                    if output_map[i].1 { "n" } else { "" }
-                )?;
-            } else {
-                write!(f, "{}", i)?;
+            write!(f, "{}", i)?;
+            for op in &output_map[i] {
+                write!(f, ":{}{}", op.0, if op.1 { "n" } else { "" })?;
             }
             if i + 1 < input_len {
                 write!(f, " ")?;
@@ -296,16 +288,9 @@ where
         }
         // next circuit gates
         for (i, g) in self.gates.iter().enumerate() {
-            if output_map[input_len + i].2 {
-                write!(
-                    f,
-                    " {}:{}{}",
-                    g,
-                    output_map[input_len + i].0,
-                    if output_map[input_len + i].1 { "n" } else { "" }
-                )?;
-            } else {
-                write!(f, " {}", g)?;
+            write!(f, " {}", g)?;
+            for op in &output_map[input_len + i] {
+                write!(f, ":{}{}", op.0, if op.1 { "n" } else { "" })?;
             }
         }
         write!(f, "}}({})", input_len)?;
@@ -1169,42 +1154,27 @@ where
     <usize as TryFrom<T>>::Error: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
-        // TODO: add support for duplicates circuit outputs
         let input_len = usize::try_from(self.input_len).unwrap();
-        let mut output_map = vec![(0, false, false); input_len + self.clauses.len()];
+        let mut output_map = vec![vec![]; input_len + self.clauses.len()];
         write!(f, "{{")?;
         for (i, (v, n)) in self.outputs.iter().enumerate() {
-            output_map[usize::try_from(*v).unwrap()] = (i, *n, true);
+            output_map[usize::try_from(*v).unwrap()].push((i, *n));
         }
         // first circuit inputs
         for i in 0..input_len {
-            if output_map[i].2 {
-                write!(
-                    f,
-                    "{}:{}{}",
-                    i,
-                    output_map[i].0,
-                    if output_map[i].1 { "n" } else { "" }
-                )?;
-            } else {
-                write!(f, "{}", i)?;
+            write!(f, "{}", i)?;
+            for op in &output_map[i] {
+                write!(f, ":{}{}", op.0, if op.1 { "n" } else { "" })?;
             }
             if i + 1 < input_len {
                 write!(f, " ")?;
             }
         }
-        // next circuit clauses
+        // next circuit gates
         for (i, c) in self.clauses.iter().enumerate() {
-            if output_map[input_len + i].2 {
-                write!(
-                    f,
-                    " {}:{}{}",
-                    c,
-                    output_map[input_len + i].0,
-                    if output_map[input_len + i].1 { "n" } else { "" }
-                )?;
-            } else {
-                write!(f, " {}", c)?;
+            write!(f, " {}", c)?;
+            for op in &output_map[input_len + i] {
+                write!(f, ":{}{}", op.0, if op.1 { "n" } else { "" })?;
             }
         }
         write!(f, "}}({})", input_len)?;

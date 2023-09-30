@@ -242,6 +242,39 @@ fn circuit_display() {
     );
     assert_eq!(
         concat!(
+            "{0 1 2 3 and(0,2):0 and(1,2) and(0,3) and(1,3) xor(5,6):1:4n ",
+            "and(5,6) xor(7,9):2:5 and(7,9):3}(4)"
+        ),
+        format!(
+            "{}",
+            Circuit::new(
+                4,
+                [
+                    Gate::new_and(0, 2),
+                    Gate::new_and(1, 2),
+                    Gate::new_and(0, 3),
+                    Gate::new_and(1, 3),
+                    // add a1*b0 + a0*b1
+                    Gate::new_xor(5, 6),
+                    Gate::new_and(5, 6),
+                    // add c(a1*b0 + a0*b1) + a1*b1
+                    Gate::new_xor(7, 9),
+                    Gate::new_and(7, 9),
+                ],
+                [
+                    (4, false),
+                    (8, false),
+                    (10, false),
+                    (11, false),
+                    (8, true),
+                    (10, false)
+                ],
+            )
+            .unwrap()
+        )
+    );
+    assert_eq!(
+        concat!(
             "{0 1 2 3 and(0,2):0 and(1,2) and(0,3) and(1,3) xor(5,6):1n ",
             "and(5,6) xor(7,9):2 and(7,9):3n}(4)"
         ),
@@ -639,6 +672,38 @@ fn clause_circuit_display() {
                     Clause::new_and([(7, false), (9, false)]),
                 ],
                 [(4, false), (8, false), (10, false), (11, false)],
+            )
+            .unwrap()
+        )
+    );
+    assert_eq!(
+        concat!(
+            "{0 1 2 3 and(0,1n,2):0:4n and(1,2) and(0,3) and(1,3) xor(5,6):1 ",
+            "and(5,6) xor(7,8,9n):2:6 and(7,9):3:5n}(4)"
+        ),
+        format!(
+            "{}",
+            ClauseCircuit::new(
+                4,
+                [
+                    Clause::new_and([(0, false), (1, true), (2, false)]),
+                    Clause::new_and([(1, false), (2, false)]),
+                    Clause::new_and([(0, false), (3, false)]),
+                    Clause::new_and([(1, false), (3, false)]),
+                    Clause::new_xor([(5, false), (6, false)]),
+                    Clause::new_and([(5, false), (6, false)]),
+                    Clause::new_xor([(7, false), (8, false), (9, true)]),
+                    Clause::new_and([(7, false), (9, false)]),
+                ],
+                [
+                    (4, false),
+                    (8, false),
+                    (10, false),
+                    (11, false),
+                    (4, true),
+                    (11, true),
+                    (10, false)
+                ],
             )
             .unwrap()
         )
