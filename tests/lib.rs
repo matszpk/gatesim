@@ -117,6 +117,17 @@ fn test_circuit_new() {
         [(3, false), (5, false)]
     )
     .is_some());
+    // two circuit outputs to same gate output
+    assert!(Circuit::new(
+        3,
+        [
+            Gate::new_xor(0, 1),
+            Gate::new_xor(1, 2),
+            Gate::new_xor(0, 4)
+        ],
+        [(3, false), (5, false), (5, true)]
+    )
+    .is_some());
     // first gate is not connected later
     assert!(Circuit::new(
         3,
