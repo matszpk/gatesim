@@ -310,7 +310,6 @@ where
     type Err = CircuitParseError<<T as FromStr>::Err>;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
-        // TODO: add support for duplicates circuit outputs
         if src.starts_with("{") {
             let mut input_len = T::default();
             let mut input_touched = vec![];
@@ -319,7 +318,7 @@ where
             let mut r = &src[1..];
             let mut end = false;
             // first loop to parse inputs
-            loop {
+            'a: loop {
                 if let Some(c) = r.chars().next() {
                     if c.is_digit(10) {
                         let p = if let Some(p) = r.find([' ', ':', '}']) {
@@ -344,42 +343,50 @@ where
                             }
                             ':' => {
                                 r = &r[1..];
-                                if let Some(p) = r.find(['n', ' ', ':', '}']) {
-                                    // parse output
-                                    let d = &r[0..p];
-                                    let output = T::from_str(d)?;
-                                    r = &r[p..];
-                                    // output negation mark
-                                    let neg = if r.chars().next().unwrap() == 'n' {
-                                        r = &r[1..];
-                                        true
+                                loop {
+                                    if let Some(p) = r.find(['n', ' ', ':', '}']) {
+                                        // parse output
+                                        let d = &r[0..p];
+                                        let output = T::from_str(d)?;
+                                        r = &r[p..];
+                                        // output negation mark
+                                        let neg = if r.chars().next().unwrap() == 'n' {
+                                            r = &r[1..];
+                                            true
+                                        } else {
+                                            false
+                                        };
+
+                                        // fill outputs
+                                        if output >= output_len {
+                                            output_len = output + T::from(1u8);
+                                            outputs
+                                                .resize(usize::try_from(output_len).unwrap(), None);
+                                        }
+                                        outputs[usize::try_from(output).unwrap()] =
+                                            Some((input, neg));
+
+                                        // skip next char or end
+                                        match r.chars().next().unwrap() {
+                                            ' ' => {
+                                                r = &r[1..];
+                                                break;
+                                            }
+                                            '}' => {
+                                                r = &r[1..];
+                                                end = true;
+                                                break 'a;
+                                            }
+                                            ':' => {
+                                                r = &r[1..];
+                                            }
+                                            _ => {
+                                                return Err(CircuitParseError::SyntaxError);
+                                            }
+                                        };
                                     } else {
-                                        false
-                                    };
-
-                                    // fill outputs
-                                    if output >= output_len {
-                                        output_len = output + T::from(1u8);
-                                        outputs.resize(usize::try_from(output_len).unwrap(), None);
+                                        return Err(CircuitParseError::SyntaxError);
                                     }
-                                    outputs[usize::try_from(output).unwrap()] = Some((input, neg));
-
-                                    // skip next char or end
-                                    match r.chars().next().unwrap() {
-                                        ' ' => {
-                                            r = &r[1..];
-                                        }
-                                        '}' => {
-                                            r = &r[1..];
-                                            end = true;
-                                            break;
-                                        }
-                                        _ => {
-                                            return Err(CircuitParseError::SyntaxError);
-                                        }
-                                    };
-                                } else {
-                                    return Err(CircuitParseError::SyntaxError);
                                 }
                             }
                             '}' => {
@@ -408,7 +415,7 @@ where
             let input_len = usize::try_from(input_len).unwrap();
 
             // second loop to parse gates
-            while !end {
+            'a: while !end {
                 let p = if let Some(p) = r.find(')') {
                     p + 1
                 } else {
@@ -425,42 +432,48 @@ where
                     }
                     ':' => {
                         r = &r[1..];
-                        if let Some(p) = r.find(['n', ' ', ':', '}']) {
-                            // parse output
-                            let d = &r[0..p];
-                            let output = T::from_str(d)?;
-                            r = &r[p..];
-                            // output negation mark
-                            let neg = if r.chars().next().unwrap() == 'n' {
-                                r = &r[1..];
-                                true
+                        loop {
+                            if let Some(p) = r.find(['n', ' ', ':', '}']) {
+                                // parse output
+                                let d = &r[0..p];
+                                let output = T::from_str(d)?;
+                                r = &r[p..];
+                                // output negation mark
+                                let neg = if r.chars().next().unwrap() == 'n' {
+                                    r = &r[1..];
+                                    true
+                                } else {
+                                    false
+                                };
+
+                                // fill outputs
+                                if output >= output_len {
+                                    output_len = output + T::from(1u8);
+                                    outputs.resize(usize::try_from(output_len).unwrap(), None);
+                                }
+                                outputs[usize::try_from(output).unwrap()] =
+                                    Some((T::try_from(input_len + gates.len() - 1).unwrap(), neg));
+
+                                // skip next char or end
+                                match r.chars().next().unwrap() {
+                                    ' ' => {
+                                        r = &r[1..];
+                                        break;
+                                    }
+                                    '}' => {
+                                        r = &r[1..];
+                                        break 'a;
+                                    }
+                                    ':' => {
+                                        r = &r[1..];
+                                    }
+                                    _ => {
+                                        return Err(CircuitParseError::SyntaxError);
+                                    }
+                                };
                             } else {
-                                false
-                            };
-
-                            // fill outputs
-                            if output >= output_len {
-                                output_len = output + T::from(1u8);
-                                outputs.resize(usize::try_from(output_len).unwrap(), None);
+                                return Err(CircuitParseError::SyntaxError);
                             }
-                            outputs[usize::try_from(output).unwrap()] =
-                                Some((T::try_from(input_len + gates.len() - 1).unwrap(), neg));
-
-                            // skip next char or end
-                            match r.chars().next().unwrap() {
-                                ' ' => {
-                                    r = &r[1..];
-                                }
-                                '}' => {
-                                    r = &r[1..];
-                                    break;
-                                }
-                                _ => {
-                                    return Err(CircuitParseError::SyntaxError);
-                                }
-                            };
-                        } else {
-                            return Err(CircuitParseError::SyntaxError);
                         }
                     }
                     '}' => {
@@ -1327,7 +1340,6 @@ where
     type Err = ClauseCircuitParseError<<T as FromStr>::Err>;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
-        // TODO: add support for duplicates circuit outputs
         if src.starts_with("{") {
             let mut input_len = T::default();
             let mut input_touched = vec![];
@@ -1336,7 +1348,7 @@ where
             let mut r = &src[1..];
             let mut end = false;
             // first loop to parse inputs
-            loop {
+            'a: loop {
                 if let Some(c) = r.chars().next() {
                     if c.is_digit(10) {
                         let p = if let Some(p) = r.find([' ', ':', '}']) {
@@ -1361,42 +1373,50 @@ where
                             }
                             ':' => {
                                 r = &r[1..];
-                                if let Some(p) = r.find(['n', ' ', ':', '}']) {
-                                    // parse output
-                                    let d = &r[0..p];
-                                    let output = T::from_str(d)?;
-                                    r = &r[p..];
-                                    // output negation mark
-                                    let neg = if r.chars().next().unwrap() == 'n' {
-                                        r = &r[1..];
-                                        true
+                                loop {
+                                    if let Some(p) = r.find(['n', ' ', ':', '}']) {
+                                        // parse output
+                                        let d = &r[0..p];
+                                        let output = T::from_str(d)?;
+                                        r = &r[p..];
+                                        // output negation mark
+                                        let neg = if r.chars().next().unwrap() == 'n' {
+                                            r = &r[1..];
+                                            true
+                                        } else {
+                                            false
+                                        };
+
+                                        // fill outputs
+                                        if output >= output_len {
+                                            output_len = output + T::from(1u8);
+                                            outputs
+                                                .resize(usize::try_from(output_len).unwrap(), None);
+                                        }
+                                        outputs[usize::try_from(output).unwrap()] =
+                                            Some((input, neg));
+
+                                        // skip next char or end
+                                        match r.chars().next().unwrap() {
+                                            ' ' => {
+                                                r = &r[1..];
+                                                break;
+                                            }
+                                            '}' => {
+                                                r = &r[1..];
+                                                end = true;
+                                                break 'a;
+                                            }
+                                            ':' => {
+                                                r = &r[1..];
+                                            }
+                                            _ => {
+                                                return Err(ClauseCircuitParseError::SyntaxError);
+                                            }
+                                        };
                                     } else {
-                                        false
-                                    };
-
-                                    // fill outputs
-                                    if output >= output_len {
-                                        output_len = output + T::from(1u8);
-                                        outputs.resize(usize::try_from(output_len).unwrap(), None);
+                                        return Err(ClauseCircuitParseError::SyntaxError);
                                     }
-                                    outputs[usize::try_from(output).unwrap()] = Some((input, neg));
-
-                                    // skip next char or end
-                                    match r.chars().next().unwrap() {
-                                        ' ' => {
-                                            r = &r[1..];
-                                        }
-                                        '}' => {
-                                            r = &r[1..];
-                                            end = true;
-                                            break;
-                                        }
-                                        _ => {
-                                            return Err(ClauseCircuitParseError::SyntaxError);
-                                        }
-                                    };
-                                } else {
-                                    return Err(ClauseCircuitParseError::SyntaxError);
                                 }
                             }
                             '}' => {
@@ -1425,7 +1445,7 @@ where
             let input_len = usize::try_from(input_len).unwrap();
 
             // second loop to parse clauses
-            while !end {
+            'a: while !end {
                 let p = if let Some(p) = r.find(')') {
                     p + 1
                 } else {
@@ -1442,42 +1462,50 @@ where
                     }
                     ':' => {
                         r = &r[1..];
-                        if let Some(p) = r.find(['n', ' ', ':', '}']) {
-                            // parse output
-                            let d = &r[0..p];
-                            let output = T::from_str(d)?;
-                            r = &r[p..];
-                            // output negation mark
-                            let neg = if r.chars().next().unwrap() == 'n' {
-                                r = &r[1..];
-                                true
+                        loop {
+                            if let Some(p) = r.find(['n', ' ', ':', '}']) {
+                                // parse output
+                                let d = &r[0..p];
+                                let output = T::from_str(d)?;
+                                r = &r[p..];
+                                // output negation mark
+                                let neg = if r.chars().next().unwrap() == 'n' {
+                                    r = &r[1..];
+                                    true
+                                } else {
+                                    false
+                                };
+
+                                // fill outputs
+                                if output >= output_len {
+                                    output_len = output + T::from(1u8);
+                                    outputs.resize(usize::try_from(output_len).unwrap(), None);
+                                }
+                                outputs[usize::try_from(output).unwrap()] = Some((
+                                    T::try_from(input_len + clauses.len() - 1).unwrap(),
+                                    neg,
+                                ));
+
+                                // skip next char or end
+                                match r.chars().next().unwrap() {
+                                    ' ' => {
+                                        r = &r[1..];
+                                        break;
+                                    }
+                                    '}' => {
+                                        r = &r[1..];
+                                        break 'a;
+                                    }
+                                    ':' => {
+                                        r = &r[1..];
+                                    }
+                                    _ => {
+                                        return Err(ClauseCircuitParseError::SyntaxError);
+                                    }
+                                };
                             } else {
-                                false
-                            };
-
-                            // fill outputs
-                            if output >= output_len {
-                                output_len = output + T::from(1u8);
-                                outputs.resize(usize::try_from(output_len).unwrap(), None);
+                                return Err(ClauseCircuitParseError::SyntaxError);
                             }
-                            outputs[usize::try_from(output).unwrap()] =
-                                Some((T::try_from(input_len + clauses.len() - 1).unwrap(), neg));
-
-                            // skip next char or end
-                            match r.chars().next().unwrap() {
-                                ' ' => {
-                                    r = &r[1..];
-                                }
-                                '}' => {
-                                    r = &r[1..];
-                                    break;
-                                }
-                                _ => {
-                                    return Err(ClauseCircuitParseError::SyntaxError);
-                                }
-                            };
-                        } else {
-                            return Err(ClauseCircuitParseError::SyntaxError);
                         }
                     }
                     '}' => {

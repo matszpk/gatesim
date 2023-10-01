@@ -299,6 +299,39 @@ fn circuit_display() {
             .unwrap()
         )
     );
+    assert_eq!(
+        concat!(
+            "{0 1:1n:2 2 3 and(0,2):0 and(1,2) and(0,3) and(1,3) xor(5,6):3n ",
+            "and(5,6) xor(7,9):4 and(7,9):5n}(4)"
+        ),
+        format!(
+            "{}",
+            Circuit::new(
+                4,
+                [
+                    Gate::new_and(0, 2),
+                    Gate::new_and(1, 2),
+                    Gate::new_and(0, 3),
+                    Gate::new_and(1, 3),
+                    // add a1*b0 + a0*b1
+                    Gate::new_xor(5, 6),
+                    Gate::new_and(5, 6),
+                    // add c(a1*b0 + a0*b1) + a1*b1
+                    Gate::new_xor(7, 9),
+                    Gate::new_and(7, 9),
+                ],
+                [
+                    (4, false),
+                    (1, true),
+                    (1, false),
+                    (8, true),
+                    (10, false),
+                    (11, true)
+                ],
+            )
+            .unwrap()
+        )
+    );
 }
 
 #[test]
@@ -364,6 +397,20 @@ fn test_circuit_from_str() {
         )
         .unwrap(),
         Circuit::from_str("{1 2:2 0 and(0,1) nor(0,2):1 xor(3,4) nimpl(1,5):0n}(3)").unwrap()
+    );
+    assert_eq!(
+        Circuit::new(
+            3,
+            [
+                Gate::new_and(0, 1),
+                Gate::new_nor(0, 2),
+                Gate::new_xor(3, 4),
+                Gate::new_nimpl(1, 5),
+            ],
+            [(6, true), (4, false), (2, false), (2, true), (4, false)]
+        )
+        .unwrap(),
+        Circuit::from_str("{1 2:2:3n 0 and(0,1) nor(0,2):1:4 xor(3,4) nimpl(1,5):0n}(3)").unwrap()
     );
     assert_eq!(
         Circuit::new(
@@ -678,7 +725,7 @@ fn clause_circuit_display() {
     );
     assert_eq!(
         concat!(
-            "{0 1 2 3 and(0,1n,2):0:4n and(1,2) and(0,3) and(1,3) xor(5,6):1 ",
+            "{0 1 2:7n:8 3 and(0,1n,2):0:4n and(1,2) and(0,3) and(1,3) xor(5,6):1 ",
             "and(5,6) xor(7,8,9n):2:6 and(7,9):3:5n}(4)"
         ),
         format!(
@@ -702,7 +749,9 @@ fn clause_circuit_display() {
                     (11, false),
                     (4, true),
                     (11, true),
-                    (10, false)
+                    (10, false),
+                    (2, true),
+                    (2, false)
                 ],
             )
             .unwrap()
@@ -794,6 +843,19 @@ fn test_clause_circuit_from_str() {
         )
         .unwrap(),
         ClauseCircuit::from_str("{0 1 2:2n and(0,1) and(0n,1,2n):1n xor(3,4):0}(3)").unwrap()
+    );
+    assert_eq!(
+        ClauseCircuit::new(
+            3,
+            [
+                Clause::new_and([(0, false), (1, false)]),
+                Clause::new_and([(0, true), (1, false), (2, true)]),
+                Clause::new_xor([(3, false), (4, false)]),
+            ],
+            [(5, false), (4, true), (2, true), (2, true), (5, false)]
+        )
+        .unwrap(),
+        ClauseCircuit::from_str("{0 1 2:2n:3n and(0,1) and(0n,1,2n):1n xor(3,4):0:4}(3)").unwrap()
     );
     assert_eq!(
         ClauseCircuit::new(
