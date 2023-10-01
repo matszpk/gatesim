@@ -383,7 +383,7 @@ where
                                             _ => {
                                                 return Err(CircuitParseError::SyntaxError);
                                             }
-                                        };
+                                        }
                                     } else {
                                         return Err(CircuitParseError::SyntaxError);
                                     }
@@ -470,7 +470,7 @@ where
                                     _ => {
                                         return Err(CircuitParseError::SyntaxError);
                                     }
-                                };
+                                }
                             } else {
                                 return Err(CircuitParseError::SyntaxError);
                             }
@@ -1413,7 +1413,7 @@ where
                                             _ => {
                                                 return Err(ClauseCircuitParseError::SyntaxError);
                                             }
-                                        };
+                                        }
                                     } else {
                                         return Err(ClauseCircuitParseError::SyntaxError);
                                     }
@@ -1502,7 +1502,7 @@ where
                                     _ => {
                                         return Err(ClauseCircuitParseError::SyntaxError);
                                     }
-                                };
+                                }
                             } else {
                                 return Err(ClauseCircuitParseError::SyntaxError);
                             }
