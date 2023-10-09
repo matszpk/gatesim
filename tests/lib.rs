@@ -81,8 +81,8 @@ fn test_circuit_new() {
     assert!(Circuit::new(2, [Gate::new_xor(0, 1)], [(2, true)]).is_some());
     assert!(Circuit::new(2, [Gate::new_xor(1, 0)], [(2, false)]).is_some());
     assert!(Circuit::new(2, [Gate::new_xor(0, 1)], [(3, false)]).is_none());
-    assert!(Circuit::new(2, [Gate::new_xor(1, 1)], [(2, false)]).is_none());
-    assert!(Circuit::new(2, [Gate::new_xor(0, 0)], [(2, false)]).is_none());
+    assert!(Circuit::new(2, [Gate::new_xor(1, 1)], [(2, false)]).is_some());
+    assert!(Circuit::new(2, [Gate::new_xor(0, 0)], [(2, false)]).is_some());
     assert!(Circuit::new(2, [Gate::new_xor(0, 1)], [(1, false)]).is_none());
 
     assert!(Circuit::new(3, [Gate::new_xor(0, 1), Gate::new_xor(2, 3)], [(4, false)]).is_some());
@@ -1329,6 +1329,38 @@ fn test_circuit_from_clause_circuit() {
         )
     );
 
+    // no one input
+    assert_eq!(
+        Circuit::new(
+            5,
+            [
+                Gate::new_and(0, 1),
+                Gate::new_and(5, 2),
+                Gate::new_xor(0, 1),
+                Gate::new_xor(7, 4),
+                Gate::new_nor(1, 2),
+                Gate::new_and(9, 4),
+                Gate::new_nimpl(8, 6),
+                Gate::new_and(11, 10),
+            ],
+            [(6, false), (12, false)]
+        )
+        .unwrap(),
+        Circuit::from(
+            ClauseCircuit::new(
+                5,
+                [
+                    Clause::new_and([(0, false), (1, false), (2, false),]),
+                    Clause::new_xor([(0, false), (1, true), (4, false),]),
+                    Clause::new_and([(1, true), (2, true), (4, false),]),
+                    Clause::new_and([(5, true), (6, true), (7, false),]),
+                ],
+                [(5, false), (8, false)]
+            )
+            .unwrap()
+        )
+    );
+
     assert_eq!(
         Circuit::new(
             4,
@@ -1768,6 +1800,38 @@ fn test_circuit_from_seq_clause_circuit() {
         )
     );
 
+    // no one input
+    assert_eq!(
+        Circuit::new(
+            5,
+            [
+                Gate::new_and(0, 1),
+                Gate::new_and(5, 2),
+                Gate::new_xor(0, 1),
+                Gate::new_xor(7, 4),
+                Gate::new_nor(1, 2),
+                Gate::new_and(9, 4),
+                Gate::new_nor(6, 8),
+                Gate::new_and(11, 10),
+            ],
+            [(6, false), (12, false)]
+        )
+        .unwrap(),
+        Circuit::from_seq(
+            ClauseCircuit::new(
+                5,
+                [
+                    Clause::new_and([(0, false), (1, false), (2, false),]),
+                    Clause::new_xor([(0, false), (1, true), (4, false),]),
+                    Clause::new_and([(1, true), (2, true), (4, false),]),
+                    Clause::new_and([(5, true), (6, false), (7, false),]),
+                ],
+                [(5, false), (8, false)]
+            )
+            .unwrap()
+        )
+    );
+
     assert_eq!(
         Circuit::new(
             4,
@@ -2179,6 +2243,32 @@ fn test_clause_circuit_from_circuit() {
                     Gate::new_nor(4, 5),
                 ],
                 [(6, false)]
+            )
+            .unwrap(),
+        )
+    );
+
+    // no one input
+    assert_eq!(
+        ClauseCircuit::new(
+            5,
+            [
+                Clause::new_and([(0, false), (1, false)]),
+                Clause::new_and([(2, false), (4, false)]),
+                Clause::new_and([(5, true), (6, true)])
+            ],
+            [(7, false)]
+        )
+        .unwrap(),
+        ClauseCircuit::from(
+            Circuit::new(
+                5,
+                [
+                    Gate::new_and(0, 1),
+                    Gate::new_and(2, 4),
+                    Gate::new_nor(5, 6),
+                ],
+                [(7, false)]
             )
             .unwrap(),
         )

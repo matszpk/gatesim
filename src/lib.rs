@@ -562,14 +562,14 @@ where
     }
 
     /// Verification:
-    /// All inputs and gate outputs must be used except output gates.
+    /// All gate outputs must be used except output gates.
     /// At least one output must be a last gate ouput.
     pub fn verify(&self) -> bool {
         // check inputs and gate outputs
         // gate have input less than its output.
         let input_len = usize::try_from(self.input_len).unwrap();
         let output_num = input_len + self.gates.len();
-        let mut used_inputs = vec![false; output_num];
+        let mut used_outputs = vec![false; self.gates.len()];
         for (i, g) in self.gates.iter().enumerate() {
             let i0 = usize::try_from(g.i0).unwrap();
             let i1 = usize::try_from(g.i1).unwrap();
@@ -577,8 +577,12 @@ where
             if i0 >= cur_index || i1 >= cur_index {
                 return false;
             }
-            used_inputs[i0] = true;
-            used_inputs[i1] = true;
+            if i0 >= input_len {
+                used_outputs[i0 - input_len] = true;
+            }
+            if i1 >= input_len {
+                used_outputs[i1 - input_len] = true;
+            }
         }
         // fill up outputs - ignore gate outputs - they can be unconnected
         for (o, _) in &self.outputs {
@@ -586,9 +590,11 @@ where
             if o >= output_num {
                 return false;
             }
-            used_inputs[o] = true;
+            if o >= input_len {
+                used_outputs[o - input_len] = true;
+            }
         }
-        if !used_inputs.into_iter().all(|x| x) {
+        if !used_outputs.into_iter().all(|x| x) {
             return false;
         }
         // check outputs: at least once output must be last gate output.
@@ -1231,14 +1237,14 @@ where
     }
 
     /// Verification:
-    /// All inputs and gate outputs must be used except output gates.
+    /// All gate outputs must be used except output gates.
     /// At least one output must be a last gate ouput.
     pub fn verify(&self) -> bool {
         // check inputs and gate outputs
         // gate have input less than its output.
         let input_len = usize::try_from(self.input_len).unwrap();
         let output_num = input_len + self.clauses.len();
-        let mut used_inputs = vec![false; output_num];
+        let mut used_outputs = vec![false; self.clauses.len()];
         for (i, c) in self.clauses.iter().enumerate() {
             let cur_index = input_len + i;
             if c.len() < 2 {
@@ -1249,7 +1255,9 @@ where
                 if l >= cur_index {
                     return false;
                 }
-                used_inputs[l] = true;
+                if l >= input_len {
+                    used_outputs[l - input_len] = true;
+                }
             }
         }
         // fill up outputs - ignore gate outputs - they can be unconnected
@@ -1258,9 +1266,11 @@ where
             if o >= output_num {
                 return false;
             }
-            used_inputs[o] = true;
+            if o >= input_len {
+                used_outputs[o - input_len] = true;
+            }
         }
-        if !used_inputs.into_iter().all(|x| x) {
+        if !used_outputs.into_iter().all(|x| x) {
             return false;
         }
         // check outputs: at least once output must be last gate output.
