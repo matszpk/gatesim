@@ -1063,19 +1063,19 @@ where
     #[inline]
     pub fn eval<Out>(&self, values: &[Out]) -> Out
     where
-        Out: BitAnd<Output = Out>
-            + BitXor<Output = Out>
-            + Not<Output = Out>
-            + Clone
-            + Copy
-            + Default,
+        Out: BitAnd<Output = Out> + BitXor<Output = Out> + Not<Output = Out> + Clone + Default,
     {
         match self.kind {
             ClauseKind::And => {
                 let mut out = !Out::default();
                 for (l, n) in self.literals.iter() {
                     let l = usize::try_from(*l).unwrap();
-                    out = out & if *n { !values[l] } else { values[l] };
+                    out = out
+                        & if *n {
+                            !values[l].clone()
+                        } else {
+                            values[l].clone()
+                        };
                 }
                 out
             }
@@ -1083,7 +1083,12 @@ where
                 let mut out = Out::default();
                 for (l, n) in self.literals.iter() {
                     let l = usize::try_from(*l).unwrap();
-                    out = out ^ if *n { !values[l] } else { values[l] };
+                    out = out
+                        ^ if *n {
+                            !values[l].clone()
+                        } else {
+                            values[l].clone()
+                        };
                 }
                 out
             }
