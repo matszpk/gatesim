@@ -6,6 +6,7 @@ use std::str::FromStr;
 
 use thiserror::Error;
 
+/// Parse error for Gate.
 #[derive(Error, Debug)]
 pub enum GateParseError<PIError> {
     #[error("Unknown function")]
@@ -16,6 +17,7 @@ pub enum GateParseError<PIError> {
     ParseInt(#[from] PIError),
 }
 
+/// Parse error for Circuit.
 #[derive(Error, Debug)]
 pub enum CircuitParseError<PIError> {
     #[error("Syntax error")]
@@ -28,11 +30,16 @@ pub enum CircuitParseError<PIError> {
     Gate(#[from] GateParseError<PIError>),
 }
 
+/// Gate function.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum GateFunc {
+    /// And logical operation.
     And,
+    /// Not-Or logical operation: !(a or b).
     Nor,
+    /// Nimpl logical operation: (a and !b) <=> !(!a or b).
     Nimpl,
+    /// Xor logical operation: (a xor b).
     Xor,
 }
 
@@ -187,6 +194,7 @@ impl<T: Clone + Copy + FromStr> FromStr for Gate<T> {
     }
 }
 
+/// Single binary gate.
 impl<T: Copy + Clone> Gate<T>
 where
     usize: TryFrom<T>,
@@ -298,6 +306,9 @@ where
     }
 }
 
+/// Circuit defined as list of gates connected together, number of inputs and list of outputs.
+/// Any output can be logically negated. Number in gate input is index of output.
+/// First outputs are inputs. Next inputs are outputs of previous gates.
 impl<T> FromStr for Circuit<T>
 where
     T: Clone + Copy + FromStr + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
@@ -531,6 +542,7 @@ where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
+    /// unsafe version without verifying circuit.
     pub unsafe fn new_unchecked(
         input_len: T,
         gates: impl IntoIterator<Item = Gate<T>>,
@@ -543,6 +555,7 @@ where
         }
     }
 
+    /// safe constructor with verifying circuit.
     pub fn new(
         input_len: T,
         gates: impl IntoIterator<Item = Gate<T>>,
@@ -661,6 +674,7 @@ where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
+    /// Converts ClauseCircuit into Circuit with parallel ordering of gates.
     fn from(circuit: ClauseCircuit<T>) -> Self {
         let mut clauses_gates: Vec<(T, bool)> = vec![];
         let mut gates = vec![];
@@ -833,6 +847,7 @@ where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
+    /// Converts ClauseCircuit into Circuit with sequential ordering of gates.
     pub fn from_seq(circuit: ClauseCircuit<T>) -> Self {
         let mut clauses_gates: Vec<(T, bool)> = vec![];
         let mut gates = vec![];
@@ -960,7 +975,9 @@ pub enum ClauseCircuitParseError<PIError> {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ClauseKind {
+    /// And clause.
     And,
+    /// Xor clause.
     Xor,
 }
 
@@ -1133,6 +1150,9 @@ impl<T: Clone + Copy + FromStr> FromStr for Clause<T> {
     }
 }
 
+/// Circuit defined as list of clauses connected together, number of inputs and list of outputs.
+/// Any output can be logically negated. Number in clause literal is index of output.
+/// First outputs are inputs. Next inputs are outputs of previous clauses.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ClauseCircuit<T> {
     input_len: T,
