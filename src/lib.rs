@@ -274,7 +274,7 @@ impl<T: Clone + Copy> Circuit<T> {
 
 impl<T> Circuit<T>
 where
-    T: Clone + Copy + PartialOrd,
+    T: Clone + Copy + Ord,
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
     T: TryFrom<usize>,
@@ -1203,7 +1203,7 @@ impl<T: Clone + Copy> ClauseCircuit<T> {
 
 impl<T> ClauseCircuit<T>
 where
-    T: Clone + Copy + PartialOrd,
+    T: Clone + Copy + Ord,
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
     T: TryFrom<usize>,
