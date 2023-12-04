@@ -272,6 +272,21 @@ impl<T: Clone + Copy> Circuit<T> {
     }
 }
 
+impl<T> Circuit<T>
+where
+    T: Clone + Copy + PartialOrd,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+{
+    pub fn add_output(&mut self, out: (T, bool)) {
+        let input_len = usize::try_from(self.input_len).unwrap();
+        assert!(out.0 < T::try_from(self.gates.len() + input_len).unwrap());
+        self.outputs.push(out);
+    }
+}
+
 impl<T: Clone + Copy + Debug> Display for Circuit<T>
 where
     usize: TryFrom<T>,
@@ -1183,6 +1198,21 @@ impl<T: Clone + Copy> ClauseCircuit<T> {
 
     pub fn len(&self) -> usize {
         self.clauses.len()
+    }
+}
+
+impl<T> ClauseCircuit<T>
+where
+    T: Clone + Copy + PartialOrd,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+{
+    pub fn add_output(&mut self, out: (T, bool)) {
+        let input_len = usize::try_from(self.input_len).unwrap();
+        assert!(out.0 < T::try_from(self.clauses.len() + input_len).unwrap());
+        self.outputs.push(out);
     }
 }
 
