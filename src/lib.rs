@@ -1,10 +1,27 @@
 use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt::{self, Debug, Display, Formatter};
 use std::hash::Hash;
+use std::iter;
 use std::ops::{BitAnd, BitOr, BitXor, Not};
 use std::str::FromStr;
 
 use thiserror::Error;
+
+pub struct FmtLiner<'a, T> {
+    inner: &'a T,
+    indent: usize,
+    indent2: usize,
+}
+
+impl<'a, T> FmtLiner<'a, T> {
+    pub fn new(inner: &'a T, indent: usize, indent2: usize) -> Self {
+        Self {
+            inner,
+            indent,
+            indent2,
+        }
+    }
+}
 
 /// Parse error for Gate.
 #[derive(Error, Debug)]
@@ -317,6 +334,42 @@ where
             }
         }
         write!(f, "}}({})", input_len)?;
+        Ok(())
+    }
+}
+
+impl<'a, T: Clone + Copy + Debug> Display for FmtLiner<'a, Circuit<T>>
+where
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        let input_len = usize::try_from(self.inner.input_len).unwrap();
+        let mut output_map = vec![vec![]; input_len + self.inner.gates.len()];
+        let indent = iter::repeat(' ').take(self.indent).collect::<String>();
+        let indent2 = iter::repeat(' ').take(self.indent2).collect::<String>();
+        writeln!(f, "{}{{", indent)?;
+        for (i, (v, n)) in self.inner.outputs.iter().enumerate() {
+            output_map[usize::try_from(*v).unwrap()].push((i, *n));
+        }
+        // first circuit inputs
+        for i in 0..input_len {
+            write!(f, "{}{}", indent2, i)?;
+            for op in &output_map[i] {
+                write!(f, ":{}{}", op.0, if op.1 { "n" } else { "" })?;
+            }
+            if i + 1 < input_len {
+                writeln!(f, "")?;
+            }
+        }
+        // next circuit gates
+        for (i, g) in self.inner.gates.iter().enumerate() {
+            write!(f, "\n{}{}", indent2, g)?;
+            for op in &output_map[input_len + i] {
+                write!(f, ":{}{}", op.0, if op.1 { "n" } else { "" })?;
+            }
+        }
+        writeln!(f, "\n{}}}({})", indent, input_len)?;
         Ok(())
     }
 }
@@ -1246,6 +1299,42 @@ where
             }
         }
         write!(f, "}}({})", input_len)?;
+        Ok(())
+    }
+}
+
+impl<'a, T: Clone + Copy + Debug> Display for FmtLiner<'a, ClauseCircuit<T>>
+where
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        let input_len = usize::try_from(self.inner.input_len).unwrap();
+        let mut output_map = vec![vec![]; input_len + self.inner.clauses.len()];
+        let indent = iter::repeat(' ').take(self.indent).collect::<String>();
+        let indent2 = iter::repeat(' ').take(self.indent2).collect::<String>();
+        writeln!(f, "{}{{", indent)?;
+        for (i, (v, n)) in self.inner.outputs.iter().enumerate() {
+            output_map[usize::try_from(*v).unwrap()].push((i, *n));
+        }
+        // first circuit inputs
+        for i in 0..input_len {
+            write!(f, "{}{}", indent2, i)?;
+            for op in &output_map[i] {
+                write!(f, ":{}{}", op.0, if op.1 { "n" } else { "" })?;
+            }
+            if i + 1 < input_len {
+                writeln!(f, "")?;
+            }
+        }
+        // next circuit gates
+        for (i, c) in self.inner.clauses.iter().enumerate() {
+            write!(f, "\n{}{}", indent2, c)?;
+            for op in &output_map[input_len + i] {
+                write!(f, ":{}{}", op.0, if op.1 { "n" } else { "" })?;
+            }
+        }
+        writeln!(f, "\n{}}}({})", indent, input_len)?;
         Ok(())
     }
 }
