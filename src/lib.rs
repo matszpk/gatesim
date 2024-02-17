@@ -23,6 +23,37 @@ impl<'a, T> FmtLiner<'a, T> {
     }
 }
 
+fn to_single_spaces(s: &str) -> String {
+    let mut out = String::new();
+    let mut start = true;
+    let mut count = 0;
+    for c in s.chars() {
+        if c.is_whitespace() {
+            if !start && count < 1 {
+                out.push(' ');
+            }
+            count += 1;
+        } else {
+            out.push(c);
+            start = false;
+            count = 0;
+        }
+    }
+    if count >= 1 {
+        out.pop();
+    }
+    out
+}
+
+#[inline]
+fn skip_single_space(s: &str) -> &str {
+    if let Some(b' ') = s.bytes().next() {
+        &s[1..]
+    } else {
+        s
+    }
+}
+
 /// Parse error for Gate.
 #[derive(Error, Debug)]
 pub enum GateParseError<PIError> {
@@ -177,6 +208,7 @@ impl<T: Clone + Copy + FromStr> FromStr for Gate<T> {
     type Err = GateParseError<<T as FromStr>::Err>;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
+        let src = to_single_spaces(src);
         let (func, r) = if src.starts_with("and(") {
             (GateFunc::And, &src[4..])
         } else if src.starts_with("nor(") {
@@ -185,19 +217,41 @@ impl<T: Clone + Copy + FromStr> FromStr for Gate<T> {
             (GateFunc::Nimpl, &src[6..])
         } else if src.starts_with("xor(") {
             (GateFunc::Xor, &src[4..])
+        } else if src.starts_with("and (") {
+            (GateFunc::And, &src[5..])
+        } else if src.starts_with("nor (") {
+            (GateFunc::Nor, &src[5..])
+        } else if src.starts_with("nimpl (") {
+            (GateFunc::Nimpl, &src[7..])
+        } else if src.starts_with("xor (") {
+            (GateFunc::Xor, &src[5..])
         } else {
             return Err(GateParseError::UnknownFunction);
         };
+        let r = skip_single_space(r);
         let (r, i0) = if let Some(p) = r.find(',') {
+            let r = skip_single_space(r);
             let d = &r[0..p];
+            let d = if let Some(b' ') = d.bytes().last() {
+                &d[0..p - 1]
+            } else {
+                d
+            };
             let d = T::from_str(d)?;
             (&r[p + 1..], d)
         } else {
             return Err(GateParseError::SyntaxError);
         };
 
+        let r = skip_single_space(r);
         let (r, i1) = if let Some(p) = r.find(')') {
+            let r = skip_single_space(r);
             let d = &r[0..p];
+            let d = if let Some(b' ') = d.bytes().last() {
+                &d[0..p - 1]
+            } else {
+                d
+            };
             let d = T::from_str(d)?;
             (&r[p + 1..], d)
         } else {
@@ -389,6 +443,7 @@ where
     type Err = CircuitParseError<<T as FromStr>::Err>;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
+        let src = to_single_spaces(src);
         if src.starts_with("{") {
             let mut input_len = T::default();
             let mut input_touched = vec![];
@@ -396,6 +451,9 @@ where
             let mut outputs = vec![];
             let mut r = &src[1..];
             let mut end = false;
+            if let Some(' ') = r.chars().next() {
+                r = &r[1..];
+            }
             // first loop to parse inputs
             'a: loop {
                 if let Some(c) = r.chars().next() {
@@ -418,6 +476,11 @@ where
                         match r.chars().next().unwrap() {
                             ' ' => {
                                 r = &r[1..];
+                                if let Some('}') = r.chars().next() {
+                                    r = &r[1..];
+                                    end = true;
+                                    break;
+                                }
                                 continue;
                             }
                             ':' => {
@@ -449,6 +512,11 @@ where
                                         match r.chars().next().unwrap() {
                                             ' ' => {
                                                 r = &r[1..];
+                                                if let Some('}') = r.chars().next() {
+                                                    r = &r[1..];
+                                                    end = true;
+                                                    break 'a;
+                                                }
                                                 break;
                                             }
                                             '}' => {
@@ -507,6 +575,10 @@ where
                 match r.chars().next().unwrap() {
                     ' ' => {
                         r = &r[1..];
+                        if let Some('}') = r.chars().next() {
+                            r = &r[1..];
+                            break;
+                        }
                         continue;
                     }
                     ':' => {
@@ -537,6 +609,10 @@ where
                                 match r.chars().next().unwrap() {
                                     ' ' => {
                                         r = &r[1..];
+                                        if let Some('}') = r.chars().next() {
+                                            r = &r[1..];
+                                            break 'a;
+                                        }
                                         break;
                                     }
                                     '}' => {
@@ -1185,17 +1261,28 @@ impl<T: Clone + Copy + FromStr> FromStr for Clause<T> {
     type Err = ClauseParseError<<T as FromStr>::Err>;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
+        let src = to_single_spaces(src);
         let (kind, mut r) = if src.starts_with("and(") {
             (ClauseKind::And, &src[4..])
         } else if src.starts_with("xor(") {
             (ClauseKind::Xor, &src[4..])
+        } else if src.starts_with("and (") {
+            (ClauseKind::And, &src[5..])
+        } else if src.starts_with("xor (") {
+            (ClauseKind::Xor, &src[5..])
         } else {
             return Err(ClauseParseError::UnknownKind);
         };
         let mut literals = vec![];
+        r = skip_single_space(r);
         while !r.is_empty() {
             let (rnew, i0) = if let Some(p) = r.find([',', 'n', ')']) {
                 let d = &r[0..p];
+                let d = if let Some(b' ') = d.bytes().last() {
+                    &d[0..p - 1]
+                } else {
+                    d
+                };
                 let d = T::from_str(d)?;
                 (&r[p..], d)
             } else {
@@ -1212,6 +1299,7 @@ impl<T: Clone + Copy + FromStr> FromStr for Clause<T> {
                 break;
             }
             r = &rnew[1..];
+            r = skip_single_space(r);
         }
 
         Ok(Clause { kind, literals })
@@ -1484,6 +1572,7 @@ where
     type Err = ClauseCircuitParseError<<T as FromStr>::Err>;
 
     fn from_str(src: &str) -> Result<Self, Self::Err> {
+        let src = to_single_spaces(src);
         if src.starts_with("{") {
             let mut input_len = T::default();
             let mut input_touched = vec![];
@@ -1491,6 +1580,11 @@ where
             let mut outputs = vec![];
             let mut r = &src[1..];
             let mut end = false;
+            r = if let Some(' ') = r.chars().next() {
+                &r[1..]
+            } else {
+                r
+            };
             // first loop to parse inputs
             'a: loop {
                 if let Some(c) = r.chars().next() {
@@ -1513,6 +1607,11 @@ where
                         match r.chars().next().unwrap() {
                             ' ' => {
                                 r = &r[1..];
+                                if let Some('}') = r.chars().next() {
+                                    r = &r[1..];
+                                    end = true;
+                                    break;
+                                }
                                 continue;
                             }
                             ':' => {
@@ -1544,6 +1643,11 @@ where
                                         match r.chars().next().unwrap() {
                                             ' ' => {
                                                 r = &r[1..];
+                                                if let Some('}') = r.chars().next() {
+                                                    r = &r[1..];
+                                                    end = true;
+                                                    break 'a;
+                                                }
                                                 break;
                                             }
                                             '}' => {
@@ -1602,6 +1706,10 @@ where
                 match r.chars().next().unwrap() {
                     ' ' => {
                         r = &r[1..];
+                        if let Some('}') = r.chars().next() {
+                            r = &r[1..];
+                            break;
+                        }
                         continue;
                     }
                     ':' => {
@@ -1634,6 +1742,10 @@ where
                                 match r.chars().next().unwrap() {
                                     ' ' => {
                                         r = &r[1..];
+                                        if let Some('}') = r.chars().next() {
+                                            r = &r[1..];
+                                            break 'a;
+                                        }
                                         break;
                                     }
                                     '}' => {
@@ -1937,5 +2049,18 @@ where
             }),
         )
         .unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_to_single_spaces() {
+        assert_eq!("abbb", to_single_spaces("abbb"));
+        assert_eq!("abbb", to_single_spaces("   abbb"));
+        assert_eq!("ab bc", to_single_spaces(" \n\t  ab  \t\n bc"));
+        assert_eq!("ab bc", to_single_spaces(" \n\t  ab  \t\n bc  \t\t"));
     }
 }
