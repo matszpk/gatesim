@@ -2181,7 +2181,9 @@ where
                 })
                 .collect::<Vec<_>>();
             let circuit = Circuit::from_str(&r[p..])?;
-            if usize::try_from(circuit.input_len()).unwrap() == quants.len() {
+            if usize::try_from(circuit.input_len()).unwrap() == quants.len()
+                && circuit.outputs().len() == 1
+            {
                 Ok(QuantCircuit { quants, circuit })
             } else {
                 Err(CircuitParseError::Invalid)
@@ -2306,7 +2308,9 @@ where
                 })
                 .collect::<Vec<_>>();
             let circuit = ClauseCircuit::from_str(&r[p..])?;
-            if usize::try_from(circuit.input_len()).unwrap() == quants.len() {
+            if usize::try_from(circuit.input_len()).unwrap() == quants.len()
+                && circuit.outputs().len() == 1
+            {
                 Ok(QuantClauseCircuit { quants, circuit })
             } else {
                 Err(ClauseCircuitParseError::Invalid)
