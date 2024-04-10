@@ -2149,6 +2149,49 @@ where
     }
 }
 
+impl<T> FromStr for QuantCircuit<T>
+where
+    T: Clone + Copy + FromStr + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
+    T: From<u8>,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+{
+    type Err = CircuitParseError<<T as FromStr>::Err>;
+
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        let src = to_single_spaces(src);
+        let r = &src;
+        if let Some(p) = r.find([' ']) {
+            if !r.as_bytes()[0..p]
+                .iter()
+                .all(|qc| *qc == b'e' || *qc == b'a')
+            {
+                return Err(CircuitParseError::SyntaxError);
+            }
+            let quants = r.as_bytes()[0..p]
+                .iter()
+                .map(|qc| match *qc {
+                    b'e' => Quant::Exists,
+                    b'a' => Quant::All,
+                    _ => {
+                        panic!("Unexpected!");
+                    }
+                })
+                .collect::<Vec<_>>();
+            let circuit = Circuit::from_str(&r[p..])?;
+            if usize::try_from(circuit.input_len()).unwrap() == quants.len() {
+                Ok(QuantCircuit { quants, circuit })
+            } else {
+                Err(CircuitParseError::Invalid)
+            }
+        } else {
+            Err(CircuitParseError::SyntaxError)
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QuantClauseCircuit<T: Clone + Copy> {
     quants: Vec<Quant>,
@@ -2228,6 +2271,49 @@ where
                 .collect::<String>(),
             FmtLiner::new(&self.inner.circuit, self.indent, self.indent2)
         )
+    }
+}
+
+impl<T> FromStr for QuantClauseCircuit<T>
+where
+    T: Clone + Copy + FromStr + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
+    T: From<u8>,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+{
+    type Err = ClauseCircuitParseError<<T as FromStr>::Err>;
+
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        let src = to_single_spaces(src);
+        let r = &src;
+        if let Some(p) = r.find([' ']) {
+            if !r.as_bytes()[0..p]
+                .iter()
+                .all(|qc| *qc == b'e' || *qc == b'a')
+            {
+                return Err(ClauseCircuitParseError::SyntaxError);
+            }
+            let quants = r.as_bytes()[0..p]
+                .iter()
+                .map(|qc| match *qc {
+                    b'e' => Quant::Exists,
+                    b'a' => Quant::All,
+                    _ => {
+                        panic!("Unexpected!");
+                    }
+                })
+                .collect::<Vec<_>>();
+            let circuit = ClauseCircuit::from_str(&r[p..])?;
+            if usize::try_from(circuit.input_len()).unwrap() == quants.len() {
+                Ok(QuantClauseCircuit { quants, circuit })
+            } else {
+                Err(ClauseCircuitParseError::Invalid)
+            }
+        } else {
+            Err(ClauseCircuitParseError::SyntaxError)
+        }
     }
 }
 
