@@ -8,9 +8,9 @@ use std::str::FromStr;
 use thiserror::Error;
 
 pub struct FmtLiner<'a, T> {
-    inner: &'a T,
-    indent: usize,
-    indent2: usize,
+    pub inner: &'a T,
+    pub indent: usize,
+    pub indent2: usize,
 }
 
 impl<'a, T> FmtLiner<'a, T> {
@@ -2049,6 +2049,185 @@ where
             }),
         )
         .unwrap()
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Quant {
+    Exists,
+    All,
+}
+
+impl Display for Quant {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        match self {
+            Quant::Exists => write!(f, "e"),
+            Quant::All => write!(f, "a"),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct QuantCircuit<T: Clone + Copy> {
+    quants: Vec<Quant>,
+    circuit: Circuit<T>,
+}
+
+impl<T> QuantCircuit<T>
+where
+    T: Clone + Copy,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+{
+    pub fn new(quants: impl IntoIterator<Item = Quant>, circuit: Circuit<T>) -> Option<Self> {
+        let out = Self {
+            quants: quants.into_iter().collect::<Vec<_>>(),
+            circuit,
+        };
+        if usize::try_from(out.circuit.input_len()).unwrap() == out.quants.len()
+            && out.circuit.outputs().len() == 1
+        {
+            Some(out)
+        } else {
+            None
+        }
+    }
+
+    pub fn circuit(&self) -> &Circuit<T> {
+        &self.circuit
+    }
+
+    pub fn quanta(&self) -> &[Quant] {
+        &self.quants
+    }
+}
+
+impl<T> Display for QuantCircuit<T>
+where
+    T: Clone + Copy + Debug,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        write!(
+            f,
+            "{} {}",
+            self.quants
+                .iter()
+                .map(|q| match q {
+                    Quant::Exists => 'e',
+                    Quant::All => 'a',
+                })
+                .collect::<String>(),
+            self.circuit
+        )
+    }
+}
+
+impl<'a, T> Display for FmtLiner<'a, QuantCircuit<T>>
+where
+    T: Clone + Copy + Debug,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        let indent = iter::repeat(' ').take(self.indent).collect::<String>();
+        write!(
+            f,
+            "{}{}\n{}",
+            indent,
+            self.inner
+                .quants
+                .iter()
+                .map(|q| match q {
+                    Quant::Exists => 'e',
+                    Quant::All => 'a',
+                })
+                .collect::<String>(),
+            FmtLiner::new(&self.inner.circuit, self.indent, self.indent2)
+        )
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct QuantClauseCircuit<T: Clone + Copy> {
+    quants: Vec<Quant>,
+    circuit: ClauseCircuit<T>,
+}
+
+impl<T> QuantClauseCircuit<T>
+where
+    T: Clone + Copy,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+{
+    pub fn new(quants: impl IntoIterator<Item = Quant>, circuit: ClauseCircuit<T>) -> Option<Self> {
+        let out = Self {
+            quants: quants.into_iter().collect::<Vec<_>>(),
+            circuit,
+        };
+        if usize::try_from(out.circuit.input_len()).unwrap() == out.quants.len()
+            && out.circuit.outputs().len() == 1
+        {
+            Some(out)
+        } else {
+            None
+        }
+    }
+
+    pub fn circuit(&self) -> &ClauseCircuit<T> {
+        &self.circuit
+    }
+
+    pub fn quanta(&self) -> &[Quant] {
+        &self.quants
+    }
+}
+
+impl<T> Display for QuantClauseCircuit<T>
+where
+    T: Clone + Copy + Debug,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        write!(
+            f,
+            "{} {}",
+            self.quants
+                .iter()
+                .map(|q| match q {
+                    Quant::Exists => 'e',
+                    Quant::All => 'a',
+                })
+                .collect::<String>(),
+            self.circuit
+        )
+    }
+}
+
+impl<'a, T> Display for FmtLiner<'a, QuantClauseCircuit<T>>
+where
+    T: Clone + Copy + Debug,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
+        let indent = iter::repeat(' ').take(self.indent).collect::<String>();
+        write!(
+            f,
+            "{}{}\n{}",
+            indent,
+            self.inner
+                .quants
+                .iter()
+                .map(|q| match q {
+                    Quant::Exists => 'e',
+                    Quant::All => 'a',
+                })
+                .collect::<String>(),
+            FmtLiner::new(&self.inner.circuit, self.indent, self.indent2)
+        )
     }
 }
 

@@ -2661,3 +2661,181 @@ fn test_clause_circuit_from_circuit() {
         );
     }
 }
+
+#[test]
+fn test_quant_circuit_new() {
+    assert!(QuantCircuit::new(
+        [Quant::All, Quant::Exists, Quant::All, Quant::Exists],
+        Circuit::new(
+            4,
+            [
+                Gate::new_and(0, 1),
+                Gate::new_and(2, 3),
+                Gate::new_xor(4, 5),
+            ],
+            [(4, false), (6, false)],
+        )
+        .unwrap()
+    )
+    .is_none());
+
+    assert!(QuantCircuit::new(
+        [Quant::All, Quant::Exists, Quant::All, Quant::Exists],
+        Circuit::new(
+            4,
+            [
+                Gate::new_and(0, 1),
+                Gate::new_and(2, 3),
+                Gate::new_xor(4, 5),
+            ],
+            [(6, false)],
+        )
+        .unwrap()
+    )
+    .is_some());
+}
+
+#[test]
+fn test_quant_circuit_display() {
+    assert_eq!(
+        "aeae {0 1 2 3 and(0,1) and(2,3) xor(4,5):0}(4)".to_string(),
+        QuantCircuit::new(
+            [Quant::All, Quant::Exists, Quant::All, Quant::Exists],
+            Circuit::new(
+                4,
+                [
+                    Gate::new_and(0, 1),
+                    Gate::new_and(2, 3),
+                    Gate::new_xor(4, 5),
+                ],
+                [(6, false)],
+            )
+            .unwrap()
+        )
+        .unwrap()
+        .to_string()
+    );
+
+    assert_eq!(
+        r##"    aeae
+    {
+        0
+        1
+        2
+        3
+        and(0,1)
+        and(2,3)
+        xor(4,5):0
+    }(4)
+"##
+        .to_string(),
+        FmtLiner::new(
+            &QuantCircuit::new(
+                [Quant::All, Quant::Exists, Quant::All, Quant::Exists],
+                Circuit::new(
+                    4,
+                    [
+                        Gate::new_and(0, 1),
+                        Gate::new_and(2, 3),
+                        Gate::new_xor(4, 5),
+                    ],
+                    [(6, false)],
+                )
+                .unwrap()
+            )
+            .unwrap(),
+            4,
+            8
+        )
+        .to_string()
+    );
+}
+
+#[test]
+fn test_quant_clause_circuit_new() {
+    assert!(QuantClauseCircuit::new(
+        [Quant::All, Quant::Exists, Quant::All, Quant::Exists],
+        ClauseCircuit::new(
+            4,
+            [
+                Clause::new_and([(0, false), (1, false)]),
+                Clause::new_and([(2, false), (3, true)]),
+                Clause::new_xor([(4, false), (5, false)]),
+            ],
+            [(4, false), (6, false)],
+        )
+        .unwrap()
+    )
+    .is_none());
+
+    assert!(QuantClauseCircuit::new(
+        [Quant::All, Quant::Exists, Quant::All, Quant::Exists],
+        ClauseCircuit::new(
+            4,
+            [
+                Clause::new_and([(0, false), (1, false)]),
+                Clause::new_and([(2, false), (3, true)]),
+                Clause::new_xor([(4, false), (5, false)]),
+            ],
+            [(6, false)],
+        )
+        .unwrap()
+    )
+    .is_some());
+}
+
+#[test]
+fn test_quant_clause_circuit_display() {
+    assert_eq!(
+        "aeae {0 1 2 3 and(0,1) and(2,3n) xor(4,5):0}(4)".to_string(),
+        QuantClauseCircuit::new(
+            [Quant::All, Quant::Exists, Quant::All, Quant::Exists],
+            ClauseCircuit::new(
+                4,
+                [
+                    Clause::new_and([(0, false), (1, false)]),
+                    Clause::new_and([(2, false), (3, true)]),
+                    Clause::new_xor([(4, false), (5, false)]),
+                ],
+                [(6, false)],
+            )
+            .unwrap()
+        )
+        .unwrap()
+        .to_string()
+    );
+
+    assert_eq!(
+        r##"    aeae
+    {
+        0
+        1
+        2
+        3
+        and(0,1)
+        and(2,3n)
+        xor(4,5):0
+    }(4)
+"##
+        .to_string(),
+        FmtLiner::new(
+            &QuantClauseCircuit::new(
+                [Quant::All, Quant::Exists, Quant::All, Quant::Exists],
+                ClauseCircuit::new(
+                    4,
+                    [
+                        Clause::new_and([(0, false), (1, false)]),
+                        Clause::new_and([(2, false), (3, true)]),
+                        Clause::new_xor([(4, false), (5, false)]),
+                    ],
+                    [(6, false)],
+                )
+                .unwrap()
+            )
+            .unwrap(),
+            4,
+            8
+        )
+        .to_string()
+    );
+}
