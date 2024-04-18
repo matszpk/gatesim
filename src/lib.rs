@@ -2097,7 +2097,7 @@ where
         &self.circuit
     }
 
-    pub fn quanta(&self) -> &[Quant] {
+    pub fn quants(&self) -> &[Quant] {
         &self.quants
     }
 }
@@ -2224,7 +2224,7 @@ where
         &self.circuit
     }
 
-    pub fn quanta(&self) -> &[Quant] {
+    pub fn quants(&self) -> &[Quant] {
         &self.quants
     }
 }
