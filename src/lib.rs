@@ -1152,6 +1152,17 @@ impl<T> Clause<T> {
     }
 }
 
+impl<T: Clone + Copy> From<Gate<T>> for Clause<T> {
+    fn from(g: Gate<T>) -> Clause<T> {
+        match g.func {
+            GateFunc::And => Clause::new_and([(g.i0, false), (g.i1, false)]),
+            GateFunc::Nor => Clause::new_and([(g.i0, true), (g.i1, true)]),
+            GateFunc::Nimpl => Clause::new_and([(g.i0, false), (g.i1, true)]),
+            GateFunc::Xor => Clause::new_xor([(g.i0, false), (g.i1, false)]),
+        }
+    }
+}
+
 impl<T: Clone + Copy + Debug> Display for Clause<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "{}(", self.kind)?;
