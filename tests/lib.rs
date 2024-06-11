@@ -2943,3 +2943,136 @@ fn test_quant_clause_circuit_from_str() {
         .unwrap()
     );
 }
+
+#[test]
+fn test_from_circuit_from() {
+    assert_eq!(
+        Gate::<u32>::new_xor(5, 7),
+        Gate::<u32>::from(Gate::<u16>::new_xor(5, 7))
+    );
+    assert_eq!(
+        Circuit::<u32>::new(
+            3,
+            [
+                Gate::new_xor(0, 1),
+                Gate::new_xor(1, 2),
+                Gate::new_xor(0, 4)
+            ],
+            [(3, false), (5, true)]
+        )
+        .unwrap(),
+        Circuit::<u32>::from(
+            Circuit::<u16>::new(
+                3,
+                [
+                    Gate::new_xor(0, 1),
+                    Gate::new_xor(1, 2),
+                    Gate::new_xor(0, 4)
+                ],
+                [(3, false), (5, true)]
+            )
+            .unwrap()
+        ),
+    );
+    assert_eq!(
+        Clause::<u32>::new_and([(5, false), (7, true), (11, false), (15, false)]),
+        Clause::<u32>::from(Clause::<u16>::new_and([
+            (5, false),
+            (7, true),
+            (11, false),
+            (15, false)
+        ]))
+    );
+    assert_eq!(
+        ClauseCircuit::<u32>::new(
+            3,
+            [
+                Clause::new_xor([(0, false), (1, false)]),
+                Clause::new_xor([(1, false), (2, false)]),
+                Clause::new_xor([(0, false), (4, false)])
+            ],
+            [(3, false), (5, true)]
+        )
+        .unwrap(),
+        ClauseCircuit::<u32>::from(
+            ClauseCircuit::<u16>::new(
+                3,
+                [
+                    Clause::new_xor([(0, false), (1, false)]),
+                    Clause::new_xor([(1, false), (2, false)]),
+                    Clause::new_xor([(0, false), (4, false)])
+                ],
+                [(3, false), (5, true)]
+            )
+            .unwrap()
+        ),
+    );
+}
+
+#[test]
+fn test_from_circuit_try_from() {
+    assert_eq!(
+        Gate::<u32>::new_xor(5, 7),
+        Gate::<u32>::try_from(Gate::<u64>::new_xor(5, 7)).unwrap()
+    );
+    assert_eq!(
+        Circuit::<u32>::new(
+            3,
+            [
+                Gate::new_xor(0, 1),
+                Gate::new_xor(1, 2),
+                Gate::new_xor(0, 4)
+            ],
+            [(3, false), (5, true)]
+        )
+        .unwrap(),
+        Circuit::<u32>::try_from(
+            Circuit::<u64>::new(
+                3,
+                [
+                    Gate::new_xor(0, 1),
+                    Gate::new_xor(1, 2),
+                    Gate::new_xor(0, 4)
+                ],
+                [(3, false), (5, true)]
+            )
+            .unwrap()
+        )
+        .unwrap(),
+    );
+    assert_eq!(
+        Clause::<u32>::new_and([(5, false), (7, true), (11, false), (15, false)]),
+        Clause::<u32>::try_from(Clause::<u64>::new_and([
+            (5, false),
+            (7, true),
+            (11, false),
+            (15, false)
+        ]))
+        .unwrap()
+    );
+    assert_eq!(
+        ClauseCircuit::<u32>::new(
+            3,
+            [
+                Clause::new_xor([(0, false), (1, false)]),
+                Clause::new_xor([(1, false), (2, false)]),
+                Clause::new_xor([(0, false), (4, false)])
+            ],
+            [(3, false), (5, true)]
+        )
+        .unwrap(),
+        ClauseCircuit::<u32>::try_from(
+            ClauseCircuit::<u64>::new(
+                3,
+                [
+                    Clause::new_xor([(0, false), (1, false)]),
+                    Clause::new_xor([(1, false), (2, false)]),
+                    Clause::new_xor([(0, false), (4, false)])
+                ],
+                [(3, false), (5, true)]
+            )
+            .unwrap()
+        )
+        .unwrap(),
+    );
+}
