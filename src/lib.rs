@@ -2403,6 +2403,100 @@ impl_circuit_from!(u16, u64);
 impl_circuit_from!(u16, usize);
 impl_circuit_from!(u32, u64);
 
+macro_rules! impl_circuit_try_from {
+    ($t1:ty, $t2:ty) => {
+        impl TryFrom<Gate<$t1>> for Gate<$t2> {
+            type Error = <$t2 as TryFrom<$t1>>::Error;
+            fn try_from(t: Gate<$t1>) -> Result<Self, Self::Error> {
+                Ok(Gate {
+                    func: t.func,
+                    i0: t.i0.try_into()?,
+                    i1: t.i1.try_into()?,
+                })
+            }
+        }
+
+        impl TryFrom<Circuit<$t1>> for Circuit<$t2> {
+            type Error = <$t2 as TryFrom<$t1>>::Error;
+            fn try_from(t: Circuit<$t1>) -> Result<Self, Self::Error> {
+                Ok(Self {
+                    input_len: t.input_len.try_into()?,
+                    gates: t
+                        .gates
+                        .into_iter()
+                        .map(|x| x.try_into())
+                        .collect::<Result<Vec<_>, _>>()?,
+                    outputs: t
+                        .outputs
+                        .into_iter()
+                        .map(|(x, n)| x.try_into().map(|x| (x, n)))
+                        .collect::<Result<Vec<_>, _>>()?,
+                })
+            }
+        }
+
+        impl TryFrom<QuantCircuit<$t1>> for QuantCircuit<$t2> {
+            type Error = <$t2 as TryFrom<$t1>>::Error;
+            fn try_from(t: QuantCircuit<$t1>) -> Result<Self, Self::Error> {
+                Ok(Self {
+                    quants: t.quants,
+                    circuit: t.circuit.try_into()?,
+                })
+            }
+        }
+
+        impl TryFrom<Clause<$t1>> for Clause<$t2> {
+            type Error = <$t2 as TryFrom<$t1>>::Error;
+            fn try_from(t: Clause<$t1>) -> Result<Self, Self::Error> {
+                Ok(Clause {
+                    kind: t.kind,
+                    literals: t
+                        .literals
+                        .into_iter()
+                        .map(|(x, n)| x.try_into().map(|x| (x, n)))
+                        .collect::<Result<Vec<_>, _>>()?,
+                })
+            }
+        }
+
+        impl TryFrom<ClauseCircuit<$t1>> for ClauseCircuit<$t2> {
+            type Error = <$t2 as TryFrom<$t1>>::Error;
+            fn try_from(t: ClauseCircuit<$t1>) -> Result<Self, Self::Error> {
+                Ok(Self {
+                    input_len: t.input_len.try_into()?,
+                    clauses: t
+                        .clauses
+                        .into_iter()
+                        .map(|x| x.try_into())
+                        .collect::<Result<Vec<_>, _>>()?,
+                    outputs: t
+                        .outputs
+                        .into_iter()
+                        .map(|(x, n)| x.try_into().map(|x| (x, n)))
+                        .collect::<Result<Vec<_>, _>>()?,
+                })
+            }
+        }
+
+        impl TryFrom<QuantClauseCircuit<$t1>> for QuantClauseCircuit<$t2> {
+            type Error = <$t2 as TryFrom<$t1>>::Error;
+            fn try_from(t: QuantClauseCircuit<$t1>) -> Result<Self, Self::Error> {
+                Ok(Self {
+                    quants: t.quants,
+                    circuit: t.circuit.try_into()?,
+                })
+            }
+        }
+    };
+}
+
+impl_circuit_try_from!(u16, u8);
+impl_circuit_try_from!(u32, u8);
+impl_circuit_try_from!(u64, u8);
+impl_circuit_try_from!(u32, u16);
+impl_circuit_try_from!(u64, u16);
+impl_circuit_try_from!(u64, u32);
+
 #[cfg(test)]
 mod tests {
     use super::*;
