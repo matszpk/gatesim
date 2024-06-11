@@ -2321,6 +2321,88 @@ where
     }
 }
 
+macro_rules! impl_circuit_from {
+    ($t1:ty, $t2:ty) => {
+        impl From<Gate<$t1>> for Gate<$t2> {
+            fn from(t: Gate<$t1>) -> Self {
+                Gate {
+                    func: t.func,
+                    i0: t.i0.into(),
+                    i1: t.i1.into(),
+                }
+            }
+        }
+
+        impl From<Circuit<$t1>> for Circuit<$t2> {
+            fn from(t: Circuit<$t1>) -> Self {
+                Self {
+                    input_len: t.input_len.into(),
+                    gates: t.gates.into_iter().map(|x| x.into()).collect::<Vec<_>>(),
+                    outputs: t
+                        .outputs
+                        .into_iter()
+                        .map(|(x, n)| (x.into(), n))
+                        .collect::<Vec<_>>(),
+                }
+            }
+        }
+
+        impl From<QuantCircuit<$t1>> for QuantCircuit<$t2> {
+            fn from(t: QuantCircuit<$t1>) -> Self {
+                Self {
+                    quants: t.quants,
+                    circuit: t.circuit.into(),
+                }
+            }
+        }
+
+        impl From<Clause<$t1>> for Clause<$t2> {
+            fn from(t: Clause<$t1>) -> Self {
+                Clause {
+                    kind: t.kind,
+                    literals: t
+                        .literals
+                        .into_iter()
+                        .map(|(x, n)| (x.into(), n))
+                        .collect::<Vec<_>>(),
+                }
+            }
+        }
+
+        impl From<ClauseCircuit<$t1>> for ClauseCircuit<$t2> {
+            fn from(t: ClauseCircuit<$t1>) -> Self {
+                Self {
+                    input_len: t.input_len.into(),
+                    clauses: t.clauses.into_iter().map(|x| x.into()).collect::<Vec<_>>(),
+                    outputs: t
+                        .outputs
+                        .into_iter()
+                        .map(|(x, n)| (x.into(), n))
+                        .collect::<Vec<_>>(),
+                }
+            }
+        }
+
+        impl From<QuantClauseCircuit<$t1>> for QuantClauseCircuit<$t2> {
+            fn from(t: QuantClauseCircuit<$t1>) -> Self {
+                Self {
+                    quants: t.quants,
+                    circuit: t.circuit.into(),
+                }
+            }
+        }
+    };
+}
+
+impl_circuit_from!(u8, u16);
+impl_circuit_from!(u8, u32);
+impl_circuit_from!(u8, u64);
+impl_circuit_from!(u8, usize);
+impl_circuit_from!(u16, u32);
+impl_circuit_from!(u16, u64);
+impl_circuit_from!(u16, usize);
+impl_circuit_from!(u32, u64);
+
 #[cfg(test)]
 mod tests {
     use super::*;
