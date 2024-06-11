@@ -2511,6 +2511,8 @@ impl_circuit_try_from!(usize, u8);
 impl_circuit_try_from!(usize, u16);
 impl_circuit_try_from!(usize, u32);
 impl_circuit_try_from!(usize, u64);
+impl_circuit_try_from!(u32, usize);
+impl_circuit_try_from!(u64, usize);
 
 #[cfg(test)]
 mod tests {
