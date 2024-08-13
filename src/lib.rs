@@ -5,6 +5,8 @@ use std::iter;
 use std::ops::{BitAnd, BitOr, BitXor, Not};
 use std::str::FromStr;
 
+use serde::de::Visitor;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use thiserror::Error;
 
 pub struct FmtLiner<'a, T> {
@@ -262,6 +264,50 @@ impl<T: Clone + Copy + FromStr> FromStr for Gate<T> {
         } else {
             Err(GateParseError::SyntaxError)
         }
+    }
+}
+
+/// serde support
+
+impl<T: Clone + Copy + Debug> Serialize for Gate<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+struct GateVisitor<T> {
+    t: std::marker::PhantomData<T>,
+}
+
+impl<'de, T: Clone + Copy + FromStr> Visitor<'de> for GateVisitor<T>
+where
+    <T as FromStr>::Err: Debug,
+{
+    type Value = Gate<T>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("gate")
+    }
+
+    fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
+        Gate::<T>::from_str(v).map_err(|e| E::custom(format!("{:?}", e)))
+    }
+}
+
+impl<'de, T: Clone + Copy + FromStr> Deserialize<'de> for Gate<T>
+where
+    <T as FromStr>::Err: Debug,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Gate<T>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(GateVisitor::<T> {
+            t: std::marker::PhantomData,
+        })
     }
 }
 
@@ -678,6 +724,71 @@ where
         } else {
             return Err(CircuitParseError::SyntaxError);
         }
+    }
+}
+
+/// serde support
+
+impl<T: Clone + Copy + Debug> Serialize for Circuit<T>
+where
+    T: Clone + Copy + FromStr + Debug + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
+    T: From<u8>,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+    <T as FromStr>::Err: Debug,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+struct CircuitVisitor<T> {
+    t: std::marker::PhantomData<T>,
+}
+
+impl<'de, T> Visitor<'de> for CircuitVisitor<T>
+where
+    T: Clone + Copy + FromStr + Debug + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
+    T: From<u8>,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+    <T as FromStr>::Err: Debug,
+{
+    type Value = Circuit<T>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("gate")
+    }
+
+    fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
+        Circuit::<T>::from_str(v).map_err(|e| E::custom(format!("{:?}", e)))
+    }
+}
+
+impl<'de, T> Deserialize<'de> for Circuit<T>
+where
+    T: Clone + Copy + FromStr + Debug + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
+    T: From<u8>,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+    <T as FromStr>::Err: Debug,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Circuit<T>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(CircuitVisitor::<T> {
+            t: std::marker::PhantomData,
+        })
     }
 }
 
@@ -1180,6 +1291,50 @@ impl<T: Clone + Copy + Debug> Display for Clause<T> {
             )?;
         }
         Ok(())
+    }
+}
+
+/// serde support
+
+impl<T: Clone + Copy + Debug> Serialize for Clause<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+struct ClauseVisitor<T> {
+    t: std::marker::PhantomData<T>,
+}
+
+impl<'de, T: Clone + Copy + FromStr> Visitor<'de> for ClauseVisitor<T>
+where
+    <T as FromStr>::Err: Debug,
+{
+    type Value = Clause<T>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("gate")
+    }
+
+    fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
+        Clause::<T>::from_str(v).map_err(|e| E::custom(format!("{:?}", e)))
+    }
+}
+
+impl<'de, T: Clone + Copy + FromStr> Deserialize<'de> for Clause<T>
+where
+    <T as FromStr>::Err: Debug,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Clause<T>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(ClauseVisitor::<T> {
+            t: std::marker::PhantomData,
+        })
     }
 }
 
@@ -1825,6 +1980,71 @@ where
     }
 }
 
+/// serde support
+
+impl<T: Clone + Copy + Debug> Serialize for ClauseCircuit<T>
+where
+    T: Clone + Copy + FromStr + Debug + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
+    T: From<u8>,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+    <T as FromStr>::Err: Debug,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+struct ClauseCircuitVisitor<T> {
+    t: std::marker::PhantomData<T>,
+}
+
+impl<'de, T> Visitor<'de> for ClauseCircuitVisitor<T>
+where
+    T: Clone + Copy + FromStr + Debug + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
+    T: From<u8>,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+    <T as FromStr>::Err: Debug,
+{
+    type Value = ClauseCircuit<T>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("gate")
+    }
+
+    fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
+        ClauseCircuit::<T>::from_str(v).map_err(|e| E::custom(format!("{:?}", e)))
+    }
+}
+
+impl<'de, T> Deserialize<'de> for ClauseCircuit<T>
+where
+    T: Clone + Copy + FromStr + Debug + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
+    T: From<u8>,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+    <T as FromStr>::Err: Debug,
+{
+    fn deserialize<D>(deserializer: D) -> Result<ClauseCircuit<T>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(ClauseCircuitVisitor::<T> {
+            t: std::marker::PhantomData,
+        })
+    }
+}
+
 impl<T: Clone + Copy + Ord + PartialEq + Eq> From<Circuit<T>> for ClauseCircuit<T>
 where
     T: Default + TryFrom<usize>,
@@ -2205,6 +2425,71 @@ where
     }
 }
 
+/// serde support
+
+impl<T: Clone + Copy + Debug> Serialize for QuantCircuit<T>
+where
+    T: Clone + Copy + FromStr + Debug + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
+    T: From<u8>,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+    <T as FromStr>::Err: Debug,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+struct QuantCircuitVisitor<T> {
+    t: std::marker::PhantomData<T>,
+}
+
+impl<'de, T> Visitor<'de> for QuantCircuitVisitor<T>
+where
+    T: Clone + Copy + FromStr + Debug + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
+    T: From<u8>,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+    <T as FromStr>::Err: Debug,
+{
+    type Value = QuantCircuit<T>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("gate")
+    }
+
+    fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
+        QuantCircuit::<T>::from_str(v).map_err(|e| E::custom(format!("{:?}", e)))
+    }
+}
+
+impl<'de, T> Deserialize<'de> for QuantCircuit<T>
+where
+    T: Clone + Copy + FromStr + Debug + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
+    T: From<u8>,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+    <T as FromStr>::Err: Debug,
+{
+    fn deserialize<D>(deserializer: D) -> Result<QuantCircuit<T>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(QuantCircuitVisitor::<T> {
+            t: std::marker::PhantomData,
+        })
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QuantClauseCircuit<T: Clone + Copy> {
     quants: Vec<Quant>,
@@ -2329,6 +2614,71 @@ where
         } else {
             Err(ClauseCircuitParseError::SyntaxError)
         }
+    }
+}
+
+/// serde support
+
+impl<T: Clone + Copy + Debug> Serialize for QuantClauseCircuit<T>
+where
+    T: Clone + Copy + FromStr + Debug + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
+    T: From<u8>,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+    <T as FromStr>::Err: Debug,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+struct QuantClauseCircuitVisitor<T> {
+    t: std::marker::PhantomData<T>,
+}
+
+impl<'de, T> Visitor<'de> for QuantClauseCircuitVisitor<T>
+where
+    T: Clone + Copy + FromStr + Debug + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
+    T: From<u8>,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+    <T as FromStr>::Err: Debug,
+{
+    type Value = QuantClauseCircuit<T>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("gate")
+    }
+
+    fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
+        QuantClauseCircuit::<T>::from_str(v).map_err(|e| E::custom(format!("{:?}", e)))
+    }
+}
+
+impl<'de, T> Deserialize<'de> for QuantClauseCircuit<T>
+where
+    T: Clone + Copy + FromStr + Debug + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
+    T: From<u8>,
+    usize: TryFrom<T>,
+    <usize as TryFrom<T>>::Error: Debug,
+    T: TryFrom<usize>,
+    <T as TryFrom<usize>>::Error: Debug,
+    <T as FromStr>::Err: Debug,
+{
+    fn deserialize<D>(deserializer: D) -> Result<QuantClauseCircuit<T>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(QuantClauseCircuitVisitor::<T> {
+            t: std::marker::PhantomData,
+        })
     }
 }
 
