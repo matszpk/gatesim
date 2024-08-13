@@ -497,6 +497,9 @@ where
             let mut outputs = vec![];
             let mut r = &src[1..];
             let mut end = false;
+            if r == "}(0)" {
+                return Ok(Circuit::new(T::default(), [], []).unwrap());
+            }
             if let Some(' ') = r.chars().next() {
                 r = &r[1..];
             }
@@ -1745,6 +1748,9 @@ where
             let mut output_len = T::default();
             let mut outputs = vec![];
             let mut r = &src[1..];
+            if r == "}(0)" {
+                return Ok(ClauseCircuit::new(T::default(), [], []).unwrap());
+            }
             let mut end = false;
             r = if let Some(' ') = r.chars().next() {
                 &r[1..]

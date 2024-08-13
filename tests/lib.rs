@@ -254,6 +254,7 @@ fn circuit_eval() {
 
 #[test]
 fn circuit_display() {
+    assert_eq!("{}(0)", format!("{}", Circuit::new(0, [], []).unwrap()),);
     assert_eq!(
         concat!(
             "{0 1 2 3 and(0,2):0 and(1,2) and(0,3) and(1,3) xor(5,6):1 ",
@@ -421,6 +422,10 @@ fn circuit_display_fmt_liner() {
 
 #[test]
 fn test_circuit_from_str() {
+    assert_eq!(
+        Circuit::new(0, [], []).unwrap(),
+        Circuit::from_str("{}(0)").unwrap()
+    );
     assert_eq!(
         Circuit::new(1, [], [(0, false)]).unwrap(),
         Circuit::from_str("{0:0}(1)").unwrap()
@@ -826,6 +831,10 @@ fn clause_circuit_eval() {
 #[test]
 fn clause_circuit_display() {
     assert_eq!(
+        "{}(0)",
+        format!("{}", ClauseCircuit::new(0, [], []).unwrap()),
+    );
+    assert_eq!(
         concat!(
             "{0 1 2 3 and(0,1n,2):0 and(1,2) and(0,3) and(1,3) xor(5,6):1 ",
             "and(5,6) xor(7,8,9n):2 and(7,9):3}(4)"
@@ -986,6 +995,10 @@ fn test_clause_from_str() {
 
 #[test]
 fn test_clause_circuit_from_str() {
+    assert_eq!(
+        ClauseCircuit::new(0, [], []).unwrap(),
+        ClauseCircuit::from_str("{}(0)").unwrap()
+    );
     assert_eq!(
         ClauseCircuit::new(1, [], [(0, false)]).unwrap(),
         ClauseCircuit::from_str("{0:0}(1)").unwrap()
