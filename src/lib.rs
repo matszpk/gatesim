@@ -746,7 +746,7 @@ where
     where
         S: Serializer,
     {
-        serializer.serialize_str(&self.to_string())
+        serializer.serialize_str(&format!("{}", FmtLiner::new(self, 4, 8)))
     }
 }
 
@@ -2002,7 +2002,7 @@ where
     where
         S: Serializer,
     {
-        serializer.serialize_str(&self.to_string())
+        serializer.serialize_str(&format!("{}", FmtLiner::new(self, 4, 8)))
     }
 }
 
@@ -2447,7 +2447,7 @@ where
     where
         S: Serializer,
     {
-        serializer.serialize_str(&self.to_string())
+        serializer.serialize_str(&format!("{}", FmtLiner::new(self, 4, 8)))
     }
 }
 
@@ -2639,7 +2639,7 @@ where
     where
         S: Serializer,
     {
-        serializer.serialize_str(&self.to_string())
+        serializer.serialize_str(&format!("{}", FmtLiner::new(self, 4, 8)))
     }
 }
 
