@@ -767,7 +767,7 @@ where
     type Value = Circuit<T>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("gate")
+        formatter.write_str("circuit")
     }
 
     fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
@@ -1319,7 +1319,7 @@ where
     type Value = Clause<T>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("gate")
+        formatter.write_str("clause")
     }
 
     fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
@@ -2023,7 +2023,7 @@ where
     type Value = ClauseCircuit<T>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("gate")
+        formatter.write_str("clause circuit")
     }
 
     fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
@@ -2468,7 +2468,7 @@ where
     type Value = QuantCircuit<T>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("gate")
+        formatter.write_str("quant circuit")
     }
 
     fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
@@ -2660,7 +2660,7 @@ where
     type Value = QuantClauseCircuit<T>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("gate")
+        formatter.write_str("quant clause circuit")
     }
 
     fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
