@@ -1338,6 +1338,7 @@ where
 
 // Clause circuits
 
+/// Clause parse error type.
 #[derive(Error, Debug)]
 pub enum ClauseParseError<PIError> {
     /// Unknown kind of clause.
@@ -1351,6 +1352,7 @@ pub enum ClauseParseError<PIError> {
     ParseInt(#[from] PIError),
 }
 
+/// Clause circuit parse error type.
 #[derive(Error, Debug)]
 pub enum ClauseCircuitParseError<PIError> {
     /// Syntax error.
@@ -1492,7 +1494,7 @@ where
 }
 
 impl<T: Clone + Copy> Clause<T> {
-    /// Create new 'And' clause that returns true if all literals
+    /// Creates new 'And' clause that returns true if all literals
     #[inline]
     pub fn new_and(literals: impl IntoIterator<Item = (T, bool)>) -> Self {
         Clause {
@@ -1501,6 +1503,7 @@ impl<T: Clone + Copy> Clause<T> {
         }
     }
 
+    /// Creates new 'Xor' clause that returns true if number of true literals is odd.
     #[inline]
     pub fn new_xor(literals: impl IntoIterator<Item = (T, bool)>) -> Self {
         Clause {
@@ -1515,7 +1518,8 @@ where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
-    /// Evaluate clause. Get values of argument from method arguments.
+    /// Evaluate clause. Get values of argument from method arguments. It returns output value.
+    /// Type `Out` can be any type that provides bitwise boolean operations.
     #[inline]
     pub fn eval_args<Out>(&self, args: impl IntoIterator<Item = Out>) -> Out
     where
@@ -1540,7 +1544,9 @@ where
         }
     }
 
-    /// Evaluate clause. Get values of argument from method arguments.
+    /// Evaluate clause. It get values of argument from output list indexed from 0.
+    /// It returns output value.
+    /// Type `Out` can be any type that provides bitwise boolean operations.
     #[inline]
     pub fn eval<Out>(&self, values: &[Out]) -> Out
     where
@@ -1655,26 +1661,33 @@ pub struct ClauseCircuit<T> {
 }
 
 impl<T: Clone + Copy> ClauseCircuit<T> {
+    /// It returns clauses of circuit.
     pub fn clauses(&self) -> &[Clause<T>] {
         &self.clauses
     }
 
+    /// It returns clauses of circuit as mutable slice (for modification).
     pub unsafe fn clauses_mut(&mut self) -> &mut [Clause<T>] {
         &mut self.clauses
     }
 
+    /// It returns circuit’s outputs. The circuit outputs described by pair of wire
+    /// index and negation. If negation is true then value of wire will be negated.
     pub fn outputs(&self) -> &[(T, bool)] {
         &self.outputs
     }
 
+    /// It returns outputs as mutable slice (for modificiation).
     pub unsafe fn outputs_mut(&mut self) -> &mut [(T, bool)] {
         &mut self.outputs
     }
 
+    /// It returns length of circuit input (circuit’s input length).
     pub fn input_len(&self) -> T {
         self.input_len
     }
 
+    /// It returns length of circuit (number of clauses).
     pub fn len(&self) -> usize {
         self.clauses.len()
     }
@@ -1688,6 +1701,7 @@ where
     T: TryFrom<usize>,
     <T as TryFrom<usize>>::Error: Debug,
 {
+    /// Add new output to circuit.
     pub fn add_output(&mut self, out: (T, bool)) {
         let input_len = usize::try_from(self.input_len).unwrap();
         assert!(out.0 < T::try_from(self.clauses.len() + input_len).unwrap());
@@ -1770,6 +1784,9 @@ where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
+    /// Unsafe version of creating circuit. An argument `input_len` is input length
+    /// (number of circuit’s inputs), an argument `clauses` is list of clauses and `outputs`
+    /// is list of circuit’s outputs. This version doesn’t verify circuit data.
     pub unsafe fn new_unchecked(
         input_len: T,
         clauses: impl IntoIterator<Item = Clause<T>>,
@@ -1782,6 +1799,9 @@ where
         }
     }
 
+    /// Creates new circuit. It returns some circuit if verification passed, otherwise None.
+    /// An argument `input_len` is input length (number of circuit’s inputs),
+    /// an argument `clauses` is list of gates and `outputs` is list of circuit’s outputs.
     pub fn new(
         input_len: T,
         clauses: impl IntoIterator<Item = Clause<T>>,
@@ -1800,9 +1820,7 @@ where
         }
     }
 
-    /// Verification:
-    /// All inputs and gate outputs must be used except output gates.
-    /// At least one output must be a last gate ouput.
+    /// It verifies circuit. If verification passed then returns true, otherwise false.
     pub fn verify(&self) -> bool {
         // check inputs and gate outputs
         // gate have input less than its output.
@@ -1851,7 +1869,10 @@ where
         }
     }
 
-    /// Evaluate gates results (without output negations).
+    /// Evaluate clauses results (without output negations). This function returns ONLY outputs of
+    /// clauses . It doesn’t returns values of circuit’s outputs. wire_outputs are mutable
+    /// slice of wires in circuits - they are circuit’s inputs and all gate’s outputs.
+    /// Length of slice should match to sum of circuit’s number and number of circuit’s clauses.
     pub fn eval_to<Out>(&self, clause_outputs: &mut [Out])
     where
         Out: BitAnd<Output = Out>
@@ -1869,7 +1890,9 @@ where
         }
     }
 
-    /// Evaluate circuit return outputs (including negation of outputs).
+    /// Evaluate circuit and returns values of circuit’s outputs. The `inputs` are
+    /// object represents iterator of inputs and length should be equal to
+    /// number of circuit’s number.
     pub fn eval<Out>(&self, inputs: impl IntoIterator<Item = Out>) -> Vec<Out>
     where
         Out: BitAnd<Output = Out>
@@ -2458,9 +2481,12 @@ where
     }
 }
 
+/// Quantifier type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Quant {
+    /// Quantifier 'exists'.
     Exists,
+    /// Quantifier 'all'.
     All,
 }
 
@@ -2473,6 +2499,10 @@ impl Display for Quant {
     }
 }
 
+/// Derive of [Circuit] with quantifier list.
+///
+/// Derive of [Circuit]. The object provides additional quantifier list for circuit's inputs.
+/// Length of quantifiers should be equal to number of circuit's inputs.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QuantCircuit<T: Clone + Copy> {
     quants: Vec<Quant>,
@@ -2485,6 +2515,9 @@ where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
+    /// Creates new quantifier circuit. A `quants` is iterator of quantifiers.
+    /// Length of iterator should be equal to circuit's number. A `circuit` is circuit
+    /// object.
     pub fn new(quants: impl IntoIterator<Item = Quant>, circuit: Circuit<T>) -> Option<Self> {
         let out = Self {
             quants: quants.into_iter().collect::<Vec<_>>(),
@@ -2499,10 +2532,12 @@ where
         }
     }
 
+    /// It returns circuit.
     pub fn circuit(&self) -> &Circuit<T> {
         &self.circuit
     }
 
+    /// It returns quantifier list.
     pub fn quants(&self) -> &[Quant] {
         &self.quants
     }
@@ -2665,6 +2700,10 @@ where
     }
 }
 
+/// Derive of [ClauseCircuit] with quantifier list.
+///
+/// Derive of [ClauseCircuit]. The object provides additional quantifier list for circuit's inputs.
+/// Length of quantifiers should be equal to number of circuit's inputs.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QuantClauseCircuit<T: Clone + Copy> {
     quants: Vec<Quant>,
@@ -2677,6 +2716,9 @@ where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
+    /// Creates new quantifier circuit. A `quants` is iterator of quantifiers.
+    /// Length of iterator should be equal to circuit's number. A `circuit` is circuit
+    /// object.
     pub fn new(quants: impl IntoIterator<Item = Quant>, circuit: ClauseCircuit<T>) -> Option<Self> {
         let out = Self {
             quants: quants.into_iter().collect::<Vec<_>>(),
@@ -2691,10 +2733,12 @@ where
         }
     }
 
+    /// It returns circuit.
     pub fn circuit(&self) -> &ClauseCircuit<T> {
         &self.circuit
     }
 
+    /// It returns quantifier list.
     pub fn quants(&self) -> &[Quant] {
         &self.quants
     }
