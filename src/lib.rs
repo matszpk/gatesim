@@ -24,10 +24,11 @@
 //! * All gate outputs are used some gates or circuit outputs.
 //!
 //! Additional type of circuit `(ClauseCircuit)` constructed from clauses. The clause is
-//! gate that uses any number of inputs. The are two clause types:
-//! * 'and' clause that returns true if all inputs are true.
+//! gate that uses any number of inputs. The clause contains literals (input wire that can be
+//! negated or not). The are two clause types:
+//! * 'and' clause that returns true if all literals are true.
 //!   If clause have no inputs then returns true.
-//! * 'xor' clause that returns true if number of inputs of true value is odd.
+//! * 'xor' clause that returns true if number of literals of true value is odd.
 //!   If clause have no inputs then returns false.
 //!
 //! Similary, the clause circuit defined by input length (number),
@@ -182,7 +183,7 @@ impl Display for GateFunc {
 /// The gate of circuit. It describes gate of circuit with all inputs.
 ///
 /// The gate of circuit. The parameter `T` defines type of wire index.
-// It can be any unsigned integer (for example `u32`).
+/// It can be any unsigned integer (for example `u32`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, Hash)]
 pub struct Gate<T: Clone + Copy> {
     /// The first input of gate.
@@ -446,7 +447,7 @@ where
 
 /// The main circuit structure that describe Gate circuit.
 ///
-/// The gate of circuit. The parameter `T` defines type of wire index.
+/// The main circuit type. The parameter `T` defines type of wire index.
 /// It can be any unsigned integer (for example `u32`).
 ///
 /// The basic type of circuit (`Circuit`) constructed from gates of following types:
@@ -456,9 +457,6 @@ where
 /// * 'nimpl' - NIMPL (negation of implication) gate that returns true if first input is true
 ///    and second is false, otherwise it returns false.
 /// * 'xor' - XOR gate that return true if inputs are different.
-///
-/// The type of circuit is parametrized by type of wire index. It can be unsigned integer
-/// for example `u32`.
 ///
 /// The circuit defined by input length (number), gates and outputs that are defined by
 /// wire and negation. If wire index is index of circuit's input or index of gate's output.
@@ -1369,11 +1367,14 @@ pub enum ClauseCircuitParseError<PIError> {
     Clause(#[from] ClauseParseError<PIError>),
 }
 
+/// Kind of clauses.
+///
+/// It specifies type of clause.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ClauseKind {
-    /// And clause.
+    /// And clause that returns true if all literals are true, otherwise it returns false.
     And,
-    /// Xor clause.
+    /// Xor clause that returns true if number of true literals are odd.
     Xor,
 }
 
@@ -1386,18 +1387,29 @@ impl Display for ClauseKind {
     }
 }
 
+/// Clause is special gate that accepts any number of inputs.
+///
+/// The clause of circuit. The parameter `T` defines type of wire index.
+/// It can be any unsigned integer (for example `u32`).
+///
+/// The clause contains literals (inputs) that can be negated. The literal is pair of
+/// input wire index and negation. If negation is set then value of literal will be negated.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Clause<T> {
+    /// Kind of clause.
     pub kind: ClauseKind,
+    /// list of literals.
     pub literals: Vec<(T, bool)>,
 }
 
 impl<T> Clause<T> {
+    /// It returns length of clause (number of literals).
     #[inline]
     pub fn len(&self) -> usize {
         self.literals.len()
     }
 
+    /// Clear clause - remove all literals.
     #[inline]
     pub fn clear(&mut self) {
         self.literals.clear();
@@ -1480,6 +1492,7 @@ where
 }
 
 impl<T: Clone + Copy> Clause<T> {
+    /// Create new 'And' clause that returns true if all literals
     #[inline]
     pub fn new_and(literals: impl IntoIterator<Item = (T, bool)>) -> Self {
         Clause {
@@ -1613,11 +1626,27 @@ impl<T: Clone + Copy + FromStr> FromStr for Clause<T> {
     }
 }
 
-/// Circuit defined as list of clauses connected together.
+/// The circuit structure that describe circuit constructed from clauses.
 ///
-/// Circuit defined as list of clauses connected together, number of inputs and list of outputs.
-/// Any output can be logically negated. Number in clause literal is index of output.
-/// First outputs are inputs. Next inputs are outputs of previous clauses.
+/// The circuit with clauses. The parameter `T` defines type of wire index.
+/// It can be any unsigned integer (for example `u32`).
+///
+/// Additional type of circuit `(ClauseCircuit)` constructed from clauses. The clause is
+/// gate that uses any number of inputs. The are two clause types:
+/// * 'and' clause that returns true if all inputs are true.
+///   If clause have no inputs then returns true.
+/// * 'xor' clause that returns true if number of inputs of true value is odd.
+///   If clause have no inputs then returns false.
+///
+/// Similary, the clause circuit defined by input length (number),
+/// clauses and outputs that are defined by wire and negation.
+/// If wire index is index of circuit's input or gate's output.
+/// The input of circuit starts from 0. The output of gate starts from input length number.
+/// The circuit can be constructed from gates satisfied following constraints:
+/// * All inputs for all clauses and output wires are correct types
+///   (input is less than current clause output wire index).
+/// * All inputs are used by some clauses or circuit outputs.
+/// * All clauses outputs are used some clauses or circuit outputs.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ClauseCircuit<T> {
     input_len: T,
