@@ -11,8 +11,11 @@
 //!    and second is false, otherwise it returns false.
 //! * 'xor' - XOR gate that return true if inputs are different.
 //!
+//! The type of circuit is parametrized by type of wire index. It can be unsigned integer
+//! for example `u32`.
+//!
 //! The circuit defined by input length (number), gates and outputs that are defined by
-//! wire and negation. If wire is index of input or output of gate.
+//! wire and negation. If wire index is index of circuit's input or index of gate's output.
 //! The input of circuit starts from 0. The output of gate starts from input length number.
 //! The circuit can be constructed from gates satisfied following constraints:
 //! * All inputs for all gates and output wires are correct types
@@ -23,11 +26,13 @@
 //! Additional type of circuit `(ClauseCircuit)` constructed from clauses. The clause is
 //! gate that uses any number of inputs. The are two clause types:
 //! * 'and' clause that returns true if all inputs are true.
+//!   If clause have no inputs then returns true.
 //! * 'xor' clause that returns true if number of inputs of true value is odd.
+//!   If clause have no inputs then returns false.
 //!
 //! Similary, the clause circuit defined by input length (number),
 //! clauses and outputs that are defined by wire and negation.
-//! If wire is index of input or output of gate.
+//! If wire index is index of circuit's input or gate's output.
 //! The input of circuit starts from 0. The output of gate starts from input length number.
 //! The circuit can be constructed from gates satisfied following constraints:
 //! * All inputs for all clauses and output wires are correct types
@@ -47,6 +52,9 @@
 //! For describe: `[all,all,exists,exists,all,all]` - formula is true if for all combinations of
 //! input0, input1 can be found some combination of input2,input3 all combinations
 //! input4, input5 circuit returns true.
+//!
+//! Similarly, QuantClauseCircuit is derive from ClauseCircuit. It provides
+//! information about quantifiers. These same constraints applied like in QuantCircuits.
 
 use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt::{self, Debug, Display, Formatter};
@@ -59,13 +67,21 @@ use serde::de::Visitor;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use thiserror::Error;
 
+/// Helper for formatting longer circuits.
+///
+/// Helper for formatting longer circuits. Usage is simple:
+/// `println!("{}", FmtLiner::new(circuit, 4, 8));`.
 pub struct FmtLiner<'a, T> {
+    /// Inner object - it can be circuit.
     pub inner: &'a T,
+    /// Number of spaces in first indentation.
     pub indent: usize,
+    /// Number of spaces in second indentation.
     pub indent2: usize,
 }
 
 impl<'a, T> FmtLiner<'a, T> {
+    /// Create new FmtLiner.
     pub fn new(inner: &'a T, indent: usize, indent2: usize) -> Self {
         Self {
             inner,
@@ -109,10 +125,13 @@ fn skip_single_space(s: &str) -> &str {
 /// Parse error for Gate.
 #[derive(Error, Debug)]
 pub enum GateParseError<PIError> {
+    /// Unknown gate function (type).
     #[error("Unknown function")]
     UnknownFunction,
+    /// Syntax error.
     #[error("Syntax error")]
     SyntaxError,
+    /// Error while parsing integer.
     #[error("ParseIntError {0}")]
     ParseInt(#[from] PIError),
 }
@@ -120,26 +139,32 @@ pub enum GateParseError<PIError> {
 /// Parse error for Circuit.
 #[derive(Error, Debug)]
 pub enum CircuitParseError<PIError> {
+    /// Syntax error.
     #[error("Syntax error")]
     SyntaxError,
+    /// Invalid circuit - it can't pass verification.
     #[error("Invalid circuit")]
     Invalid,
+    /// Error while parsing integer.
     #[error("ParseIntError {0}")]
     ParseInt(#[from] PIError),
+    /// Error while parsing gate.
     #[error("GateParseError {0}")]
     Gate(#[from] GateParseError<PIError>),
 }
 
-/// Gate function.
+/// Gate function (type).
+///
+/// It specifies type of gate.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum GateFunc {
-    /// And logical operation.
+    /// And logical operation. The gate returns true if all inputs are true.
     And,
-    /// Not-Or logical operation: !(a or b).
+    /// Not-Or logical operation: !(a or b).  The gate returns true if all inputs are false.
     Nor,
     /// Nimpl logical operation: (a and !b) <=> !(!a or b).
     Nimpl,
-    /// Xor logical operation: (a xor b).
+    /// Xor logical operation: (a xor b). The returns true if inputs differs.
     Xor,
 }
 
@@ -154,10 +179,17 @@ impl Display for GateFunc {
     }
 }
 
+/// The gate of circuit. It describes gate of circuit with all inputs.
+///
+/// The gate of circuit. The parameter `T` defines type of wire index.
+// It can be any unsigned integer (for example `u32`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, Hash)]
 pub struct Gate<T: Clone + Copy> {
+    /// The first input of gate.
     pub i0: T,
+    /// The second input of gate.
     pub i1: T,
+    /// Gate function (type).
     pub func: GateFunc,
 }
 
@@ -219,6 +251,7 @@ impl<T: Clone + Copy + PartialOrd> PartialOrd for Gate<T> {
 }
 
 impl<T: Clone + Copy> Gate<T> {
+    /// Creates 'and' gate. The arguments are wire indices.
     #[inline]
     pub fn new_and(i0: T, i1: T) -> Self {
         Gate {
@@ -228,6 +261,7 @@ impl<T: Clone + Copy> Gate<T> {
         }
     }
 
+    /// Creates 'nor' gate. The arguments are wire indices.
     #[inline]
     pub fn new_nor(i0: T, i1: T) -> Self {
         Gate {
@@ -237,6 +271,7 @@ impl<T: Clone + Copy> Gate<T> {
         }
     }
 
+    /// Creates 'nimpl' gate. The arguments are wire indices.
     #[inline]
     pub fn new_nimpl(i0: T, i1: T) -> Self {
         Gate {
@@ -246,6 +281,7 @@ impl<T: Clone + Copy> Gate<T> {
         }
     }
 
+    /// Creates 'xor' gate. The arguments are wire indices.
     #[inline]
     pub fn new_xor(i0: T, i1: T) -> Self {
         Gate {
@@ -361,13 +397,13 @@ where
     }
 }
 
-/// Single binary gate.
 impl<T: Copy + Clone> Gate<T>
 where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
-    /// Evaluate gate. Get values of argument from method arguments.
+    /// Evaluate gate. Get values of argument from method arguments. It returns output value.
+    /// Type `Out` can be any type that provides bitwise boolean operations.
     #[inline]
     pub fn eval_args<Out>(&self, i0: Out, i1: Out) -> Out
     where
@@ -385,7 +421,9 @@ where
         }
     }
 
-    /// Evaluate gate. Get values of argument from output list indexed from 0.
+    /// Evaluate gate. It get values of argument from output list indexed from 0.
+    /// It returns output value.
+    /// Type `Out` can be any type that provides bitwise boolean operations.
     #[inline]
     pub fn eval<Out>(&self, outputs: &[Out]) -> Out
     where
@@ -406,6 +444,30 @@ where
     }
 }
 
+/// The main circuit structure that describe Gate circuit.
+///
+/// The gate of circuit. The parameter `T` defines type of wire index.
+/// It can be any unsigned integer (for example `u32`).
+///
+/// The basic type of circuit (`Circuit`) constructed from gates of following types:
+/// * 'and' - AND gate that returns true if two inputs are true, otherwise returns false.
+/// * 'nor' - NOR (negation of OR) gate that returns true if two inputs are false,
+///    otherwise returns false.
+/// * 'nimpl' - NIMPL (negation of implication) gate that returns true if first input is true
+///    and second is false, otherwise it returns false.
+/// * 'xor' - XOR gate that return true if inputs are different.
+///
+/// The type of circuit is parametrized by type of wire index. It can be unsigned integer
+/// for example `u32`.
+///
+/// The circuit defined by input length (number), gates and outputs that are defined by
+/// wire and negation. If wire index is index of circuit's input or index of gate's output.
+/// The input of circuit starts from 0. The output of gate starts from input length number.
+/// The circuit can be constructed from gates satisfied following constraints:
+/// * All inputs for all gates and output wires are correct types
+///   (input is less than current gate output wire index).
+/// * All inputs are used by some gates or circuit outputs.
+/// * All gate outputs are used some gates or circuit outputs.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Circuit<T: Clone + Copy> {
     input_len: T,
@@ -414,26 +476,34 @@ pub struct Circuit<T: Clone + Copy> {
 }
 
 impl<T: Clone + Copy> Circuit<T> {
+    /// It returns gates of circuit.
     pub fn gates(&self) -> &[Gate<T>] {
         &self.gates
     }
 
+    /// It returns gates of circuit as mutable slice (for modification).
     pub unsafe fn gates_mut(&mut self) -> &mut [Gate<T>] {
         &mut self.gates
     }
 
+    /// It returns circuit's outputs. The circuit outputs described by
+    /// pair of wire index and negation.
+    /// If negation is true then value of wire will be negated.
     pub fn outputs(&self) -> &[(T, bool)] {
         &self.outputs
     }
 
+    /// It returns outputs as mutable slice (for modificiation)
     pub unsafe fn outputs_mut(&mut self) -> &mut [(T, bool)] {
         &mut self.outputs
     }
 
+    /// It returns length of circuit input (circuit's input length).
     pub fn input_len(&self) -> T {
         self.input_len
     }
 
+    /// It returns length of circuit (number of gates).
     pub fn len(&self) -> usize {
         self.gates.len()
     }
@@ -447,6 +517,7 @@ where
     T: TryFrom<usize>,
     <T as TryFrom<usize>>::Error: Debug,
 {
+    /// Add new output to circuit.
     pub fn add_output(&mut self, out: (T, bool)) {
         let input_len = usize::try_from(self.input_len).unwrap();
         assert!(out.0 < T::try_from(self.gates.len() + input_len).unwrap());
@@ -524,9 +595,6 @@ where
     }
 }
 
-/// Circuit defined as list of gates connected together, number of inputs and list of outputs.
-/// Any output can be logically negated. Number in gate input is index of output.
-/// First outputs are inputs. Next inputs are outputs of previous gates.
 impl<T> FromStr for Circuit<T>
 where
     T: Clone + Copy + FromStr + Default + PartialOrd + Ord + std::ops::Add<Output = T>,
@@ -850,7 +918,9 @@ where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
-    /// unsafe version without verifying circuit.
+    /// Unsafe version of creating circuit. An argument `input_len` is input length (number
+    /// of circuit's inputs), an argument `gates` is list of gates and `outputs` is
+    /// list of circuit's outputs. This version doesn't verify circuit data.
     pub unsafe fn new_unchecked(
         input_len: T,
         gates: impl IntoIterator<Item = Gate<T>>,
@@ -863,7 +933,10 @@ where
         }
     }
 
-    /// safe constructor with verifying circuit.
+    /// Creates new circuit. It returns some circuit if verification passed, otherwise None.
+    /// An argument `input_len` is input length (number
+    /// of circuit's inputs), an argument `gates` is list of gates and `outputs` is
+    /// list of circuit's outputs.
     pub fn new(
         input_len: T,
         gates: impl IntoIterator<Item = Gate<T>>,
@@ -882,9 +955,7 @@ where
         }
     }
 
-    /// Verification:
-    /// All inputs and gate outputs must be used except output gates.
-    /// At least one output must be a last gate ouput.
+    /// It verifies circuit. If verification passed then returns true, otherwise false.
     pub fn verify(&self) -> bool {
         // check inputs and gate outputs
         // gate have input less than its output.
@@ -930,8 +1001,12 @@ where
         }
     }
 
-    /// Evaluate gates results (without output negations).
-    pub fn eval_to<Out>(&self, gate_outputs: &mut [Out])
+    /// Evaluate gates results (without output negations). This function returns ONLY
+    /// outputs of gates. It doesn't returns values of circuit's outputs.
+    /// `wire_outputs` are mutable slice of wires in circuits - they are circuit's inputs and
+    /// all gate's outputs. Length of slice should match to sum of circuit's number and
+    /// number of circuit's gates.
+    pub fn eval_to<Out>(&self, wire_outputs: &mut [Out])
     where
         Out: BitAnd<Output = Out>
             + BitOr<Output = Out>
@@ -941,13 +1016,15 @@ where
             + Clone,
     {
         let input_len = usize::try_from(self.input_len).unwrap();
-        assert_eq!(gate_outputs.len(), input_len + self.gates.len());
+        assert_eq!(wire_outputs.len(), input_len + self.gates.len());
         for (i, g) in self.gates.iter().enumerate() {
-            gate_outputs[input_len + i] = g.eval(&gate_outputs);
+            wire_outputs[input_len + i] = g.eval(&wire_outputs);
         }
     }
 
-    /// Evaluate circuit return outputs (including negation of outputs).
+    /// Evaluate circuit and returns values of circuit's outputs. The `inputs` are
+    /// object represents iterator of inputs and length should be equal to
+    /// number of circuit's number.
     pub fn eval<Out>(&self, inputs: impl IntoIterator<Item = Out>) -> Vec<Out>
     where
         Out: BitAnd<Output = Out>
@@ -982,7 +1059,9 @@ where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
-    /// Converts ClauseCircuit into Circuit with parallel ordering of gates.
+    /// Converts ClauseCircuit into Circuit with parallel ordering of gates. Clauses from
+    /// ClauseCircuit will be converted to multiple gates of Circuit that are organized
+    /// in parallel tree (forcing shortest path from input to output).
     fn from(circuit: ClauseCircuit<T>) -> Self {
         let mut clauses_gates: Vec<(T, bool)> = vec![];
         let mut gates = vec![];
@@ -1155,7 +1234,9 @@ where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
-    /// Converts ClauseCircuit into Circuit with sequential ordering of gates.
+    /// Converts ClauseCircuit into Circuit with sequential ordering of gates. Clauses from
+    /// ClauseCircuit will be converted to multiple gates of Circuit that are organized
+    /// in sequences of gates.
     pub fn from_seq(circuit: ClauseCircuit<T>) -> Self {
         let mut clauses_gates: Vec<(T, bool)> = vec![];
         let mut gates = vec![];
@@ -1525,6 +1606,8 @@ impl<T: Clone + Copy + FromStr> FromStr for Clause<T> {
     }
 }
 
+/// Circuit defined as list of clauses connected together.
+///
 /// Circuit defined as list of clauses connected together, number of inputs and list of outputs.
 /// Any output can be logically negated. Number in clause literal is index of output.
 /// First outputs are inputs. Next inputs are outputs of previous clauses.
