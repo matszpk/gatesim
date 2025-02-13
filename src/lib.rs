@@ -1342,22 +1342,29 @@ where
 
 #[derive(Error, Debug)]
 pub enum ClauseParseError<PIError> {
+    /// Unknown kind of clause.
     #[error("Unknown kind")]
     UnknownKind,
+    /// Syntax error.
     #[error("Syntax error")]
     SyntaxError,
+    /// Error while parsing integer.
     #[error("ParseIntError {0}")]
     ParseInt(#[from] PIError),
 }
 
 #[derive(Error, Debug)]
 pub enum ClauseCircuitParseError<PIError> {
+    /// Syntax error.
     #[error("Syntax error")]
     SyntaxError,
+    /// If circuit doesn't pass verification.
     #[error("Invalid circuit")]
     Invalid,
+    /// Error while parsing integer.
     #[error("ParseIntError {0}")]
     ParseInt(#[from] PIError),
+    /// Error while parsing clause.
     #[error("ClauseParseError {0}")]
     Clause(#[from] ClauseParseError<PIError>),
 }
