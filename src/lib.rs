@@ -54,7 +54,7 @@
 //! input0, input1 can be found some combination of input2,input3 all combinations
 //! input4, input5 circuit returns true.
 //!
-//! Similarly, QuantClauseCircuit is derive from ClauseCircuit. It provides
+//! Similary, QuantClauseCircuit is derive from ClauseCircuit. It provides
 //! information about quantifiers. These same constraints applied like in QuantCircuits.
 
 use std::cmp::{Ord, Ordering, PartialOrd};
