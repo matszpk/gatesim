@@ -3,7 +3,7 @@
 //! methods to operate on that circuits. The library doesn't provide complex simulation
 //! routines. This library is really base of the Gate Project.
 //!
-//! The basic type of circuit (`Circuit`) constructed from gates of following types:
+//! The basic type of circuit [Circuit] is constructed from gates of following types:
 //! * 'and' - AND gate that returns true if two inputs are true, otherwise returns false.
 //! * 'nor' - NOR (negation of OR) gate that returns true if two inputs are false,
 //!    otherwise returns false.
@@ -23,7 +23,7 @@
 //! * All inputs are used by some gates or circuit outputs.
 //! * All gate outputs are used some gates or circuit outputs.
 //!
-//! Additional type of circuit `(ClauseCircuit)` constructed from clauses. The clause is
+//! Additional type of circuit [ClauseCircuit] is constructed from clauses. The clause is
 //! gate that uses any number of inputs. The clause contains literals (input wire that can be
 //! negated or not). The are two clause types:
 //! * 'and' clause that returns true if all literals are true.
@@ -41,7 +41,7 @@
 //! * All inputs are used by some clauses or circuit outputs.
 //! * All clauses outputs are used some clauses or circuit outputs.
 //!
-//! Derived QuantCircuit from Circuit provides additional information about quantifiers.
+//! Derived [QuantCircuit] from [Circuit] provides additional information about quantifiers.
 //! These quantifiers can be used to evaluate or solve quantified formula defined by circuit.
 //! There are two types of quantifiers:
 //! * 'all' - formula is satisified if circuit returns true for all combinations of inputs.
@@ -54,7 +54,7 @@
 //! input0, input1 can be found some combination of input2,input3 all combinations
 //! input4, input5 circuit returns true.
 //!
-//! Similary, QuantClauseCircuit is derive from ClauseCircuit. It provides
+//! Similary, [QuantClauseCircuit] is derive from [ClauseCircuit]. It provides
 //! information about quantifiers. These same constraints applied like in QuantCircuits.
 
 use std::cmp::{Ord, Ordering, PartialOrd};
@@ -450,7 +450,7 @@ where
 /// The main circuit type. The parameter `T` defines type of wire index.
 /// It can be any unsigned integer (for example `u32`).
 ///
-/// The basic type of circuit (`Circuit`) constructed from gates of following types:
+/// The basic type of circuit (`Circuit`) is constructed from gates of following types:
 /// * 'and' - AND gate that returns true if two inputs are true, otherwise returns false.
 /// * 'nor' - NOR (negation of OR) gate that returns true if two inputs are false,
 ///    otherwise returns false.
@@ -1637,7 +1637,7 @@ impl<T: Clone + Copy + FromStr> FromStr for Clause<T> {
 /// The circuit with clauses. The parameter `T` defines type of wire index.
 /// It can be any unsigned integer (for example `u32`).
 ///
-/// Additional type of circuit `(ClauseCircuit)` constructed from clauses. The clause is
+/// Additional type of circuit `(ClauseCircuit)` is constructed from clauses. The clause is
 /// gate that uses any number of inputs. The are two clause types:
 /// * 'and' clause that returns true if all inputs are true.
 ///   If clause have no inputs then returns true.
