@@ -13,3 +13,7 @@ categories = ["science", "mathematics"]
 [dependencies]
 thiserror = "1.0"
 serde = "1.0"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
