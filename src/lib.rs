@@ -1020,7 +1020,7 @@ where
         }
     }
 
-    /// Evaluate circuit and returns values of circuit's outputs. The `inputs` are
+    /// Evaluate circuit and returns values of circuit's outputs. An `inputs` are
     /// object represents iterator of inputs and length should be equal to
     /// number of circuit's number.
     pub fn eval<Out>(&self, inputs: impl IntoIterator<Item = Out>) -> Vec<Out>
@@ -1890,7 +1890,7 @@ where
         }
     }
 
-    /// Evaluate circuit and returns values of circuit’s outputs. The `inputs` are
+    /// Evaluate circuit and returns values of circuit’s outputs. An `inputs` are
     /// object represents iterator of inputs and length should be equal to
     /// number of circuit’s number.
     pub fn eval<Out>(&self, inputs: impl IntoIterator<Item = Out>) -> Vec<Out>
