@@ -27,9 +27,9 @@
 //! gate that uses any number of inputs. The clause contains literals (input wire that can be
 //! negated or not). The are two clause types:
 //! * 'and' clause that returns true if all literals are true.
-//!   If clause have no inputs then returns true.
+//!   If clause has no inputs then returns true.
 //! * 'xor' clause that returns true if number of literals of true value is odd.
-//!   If clause have no inputs then returns false.
+//!   If clause has no inputs then returns false.
 //!
 //! Similary, the clause circuit defined by input length (number),
 //! clauses and outputs that are defined by wire and negation.
@@ -956,7 +956,7 @@ where
     /// It verifies circuit. If verification passed then returns true, otherwise false.
     pub fn verify(&self) -> bool {
         // check inputs and gate outputs
-        // gate have input less than its output.
+        // gate has input less than its output.
         let input_len = usize::try_from(self.input_len).unwrap();
         let output_num = input_len + self.gates.len();
         let mut used_inputs = vec![false; output_num];
@@ -1640,9 +1640,9 @@ impl<T: Clone + Copy + FromStr> FromStr for Clause<T> {
 /// Additional type of circuit `(ClauseCircuit)` is constructed from clauses. The clause is
 /// gate that uses any number of inputs. The are two clause types:
 /// * 'and' clause that returns true if all inputs are true.
-///   If clause have no inputs then returns true.
+///   If clause has no inputs then returns true.
 /// * 'xor' clause that returns true if number of inputs of true value is odd.
-///   If clause have no inputs then returns false.
+///   If clause has no inputs then returns false.
 ///
 /// Similary, the clause circuit defined by input length (number),
 /// clauses and outputs that are defined by wire and negation.
@@ -1823,7 +1823,7 @@ where
     /// It verifies circuit. If verification passed then returns true, otherwise false.
     pub fn verify(&self) -> bool {
         // check inputs and gate outputs
-        // gate have input less than its output.
+        // gate has input less than its output.
         let input_len = usize::try_from(self.input_len).unwrap();
         let output_num = input_len + self.clauses.len();
         let mut used_inputs = vec![false; output_num];
