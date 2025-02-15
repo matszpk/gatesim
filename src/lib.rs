@@ -252,7 +252,7 @@ impl<T: Clone + Copy + PartialOrd> PartialOrd for Gate<T> {
 }
 
 impl<T: Clone + Copy> Gate<T> {
-    /// Creates 'and' gate. The arguments are wire indices.
+    /// Creates 'and' gate. Arguments are wire indices.
     #[inline]
     pub fn new_and(i0: T, i1: T) -> Self {
         Gate {
@@ -262,7 +262,7 @@ impl<T: Clone + Copy> Gate<T> {
         }
     }
 
-    /// Creates 'nor' gate. The arguments are wire indices.
+    /// Creates 'nor' gate. Arguments are wire indices.
     #[inline]
     pub fn new_nor(i0: T, i1: T) -> Self {
         Gate {
@@ -272,7 +272,7 @@ impl<T: Clone + Copy> Gate<T> {
         }
     }
 
-    /// Creates 'nimpl' gate. The arguments are wire indices.
+    /// Creates 'nimpl' gate. Arguments are wire indices.
     #[inline]
     pub fn new_nimpl(i0: T, i1: T) -> Self {
         Gate {
@@ -282,7 +282,7 @@ impl<T: Clone + Copy> Gate<T> {
         }
     }
 
-    /// Creates 'xor' gate. The arguments are wire indices.
+    /// Creates 'xor' gate. Arguments are wire indices.
     #[inline]
     pub fn new_xor(i0: T, i1: T) -> Self {
         Gate {
@@ -916,8 +916,8 @@ where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
-    /// Unsafe version of creating circuit. An argument `input_len` is input length (number
-    /// of circuit's inputs), an argument `gates` is list of gates and `outputs` is
+    /// Unsafe version of creating circuit. Argument `input_len` is input length (number
+    /// of circuit's inputs), argument `gates` is list of gates and `outputs` is
     /// list of circuit's outputs. This version doesn't verify circuit data.
     pub unsafe fn new_unchecked(
         input_len: T,
@@ -932,8 +932,8 @@ where
     }
 
     /// Creates new circuit. It returns some circuit if verification passed, otherwise None.
-    /// An argument `input_len` is input length (number
-    /// of circuit's inputs), an argument `gates` is list of gates and `outputs` is
+    /// Argument `input_len` is input length (number
+    /// of circuit's inputs), argument `gates` is list of gates and `outputs` is
     /// list of circuit's outputs.
     pub fn new(
         input_len: T,
@@ -1020,7 +1020,7 @@ where
         }
     }
 
-    /// Evaluate circuit and returns values of circuit's outputs. An `inputs` are
+    /// Evaluate circuit and returns values of circuit's outputs. `inputs` are
     /// object represents iterator of inputs and length should be equal to
     /// number of circuit's number.
     pub fn eval<Out>(&self, inputs: impl IntoIterator<Item = Out>) -> Vec<Out>
@@ -1784,8 +1784,8 @@ where
     usize: TryFrom<T>,
     <usize as TryFrom<T>>::Error: Debug,
 {
-    /// Unsafe version of creating circuit. An argument `input_len` is input length
-    /// (number of circuit’s inputs), an argument `clauses` is list of clauses and `outputs`
+    /// Unsafe version of creating circuit. Argument `input_len` is input length
+    /// (number of circuit’s inputs), argument `clauses` is list of clauses and `outputs`
     /// is list of circuit’s outputs. This version doesn’t verify circuit data.
     pub unsafe fn new_unchecked(
         input_len: T,
@@ -1800,8 +1800,8 @@ where
     }
 
     /// Creates new circuit. It returns some circuit if verification passed, otherwise None.
-    /// An argument `input_len` is input length (number of circuit’s inputs),
-    /// an argument `clauses` is list of gates and `outputs` is list of circuit’s outputs.
+    /// Argument `input_len` is input length (number of circuit’s inputs),
+    /// argument `clauses` is list of gates and `outputs` is list of circuit’s outputs.
     pub fn new(
         input_len: T,
         clauses: impl IntoIterator<Item = Clause<T>>,
@@ -1890,7 +1890,7 @@ where
         }
     }
 
-    /// Evaluate circuit and returns values of circuit’s outputs. An `inputs` are
+    /// Evaluate circuit and returns values of circuit’s outputs. `inputs` are
     /// object represents iterator of inputs and length should be equal to
     /// number of circuit’s number.
     pub fn eval<Out>(&self, inputs: impl IntoIterator<Item = Out>) -> Vec<Out>
