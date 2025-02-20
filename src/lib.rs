@@ -15,7 +15,7 @@
 //! for example `u32`.
 //!
 //! The circuit defined by input length (number), gates and outputs that are defined by
-//! wire and negation. If wire index is index of circuit's input or index of gate's output.
+//! wire and negation. If wire index is index of circuit input or index of gate's output.
 //! The input of circuit starts from 0. The output of gate starts from input length number.
 //! The circuit can be constructed from gates satisfied following constraints:
 //! * All inputs for all gates and output wires are correct types
@@ -33,7 +33,7 @@
 //!
 //! Similary, the clause circuit defined by input length (number),
 //! clauses and outputs that are defined by wire and negation.
-//! If wire index is index of circuit's input or gate's output.
+//! If wire index is index of circuit input or gate's output.
 //! The input of circuit starts from 0. The output of gate starts from input length number.
 //! The circuit can be constructed from gates satisfied following constraints:
 //! * All inputs for all clauses and output wires are correct types
@@ -459,7 +459,7 @@ where
 /// * 'xor' - XOR gate that return true if inputs are different.
 ///
 /// The circuit defined by input length (number), gates and outputs that are defined by
-/// wire and negation. If wire index is index of circuit's input or index of gate's output.
+/// wire and negation. If wire index is index of circuit input or index of gate's output.
 /// The input of circuit starts from 0. The output of gate starts from input length number.
 /// The circuit can be constructed from gates satisfied following constraints:
 /// * All inputs for all gates and output wires are correct types
@@ -484,7 +484,7 @@ impl<T: Clone + Copy> Circuit<T> {
         &mut self.gates
     }
 
-    /// It returns circuit's outputs. The circuit outputs described by
+    /// It returns circuit outputs. The circuit outputs described by
     /// pair of wire index and negation.
     /// If negation is true then value of wire will be negated.
     pub fn outputs(&self) -> &[(T, bool)] {
@@ -496,7 +496,7 @@ impl<T: Clone + Copy> Circuit<T> {
         &mut self.outputs
     }
 
-    /// It returns length of circuit input (circuit's input length).
+    /// It returns length of circuit input (circuit input length).
     pub fn input_len(&self) -> T {
         self.input_len
     }
@@ -917,8 +917,8 @@ where
     <usize as TryFrom<T>>::Error: Debug,
 {
     /// Unsafe version of creating circuit. Argument `input_len` is input length (number
-    /// of circuit's inputs), argument `gates` is list of gates and `outputs` is
-    /// list of circuit's outputs. This version doesn't verify circuit data.
+    /// of circuit inputs), argument `gates` is list of gates and `outputs` is
+    /// list of circuit outputs. This version doesn't verify circuit data.
     pub unsafe fn new_unchecked(
         input_len: T,
         gates: impl IntoIterator<Item = Gate<T>>,
@@ -933,8 +933,8 @@ where
 
     /// Creates new circuit. It returns some circuit if verification passed, otherwise None.
     /// Argument `input_len` is input length (number
-    /// of circuit's inputs), argument `gates` is list of gates and `outputs` is
-    /// list of circuit's outputs.
+    /// of circuit inputs), argument `gates` is list of gates and `outputs` is
+    /// list of circuit outputs.
     pub fn new(
         input_len: T,
         gates: impl IntoIterator<Item = Gate<T>>,
@@ -1000,8 +1000,8 @@ where
     }
 
     /// Evaluate gates results (without output negations). This function returns ONLY
-    /// outputs of gates. It doesn't returns values of circuit's outputs.
-    /// `wire_outputs` are mutable slice of wires in circuits - they are circuit's inputs and
+    /// outputs of gates. It doesn't returns values of circuit outputs.
+    /// `wire_outputs` are mutable slice of wires in circuits - they are circuit inputs and
     /// all gate's outputs. Length of slice should match to sum of circuit's number and
     /// number of circuit's gates.
     pub fn eval_to<Out>(&self, wire_outputs: &mut [Out])
@@ -1020,7 +1020,7 @@ where
         }
     }
 
-    /// Evaluate circuit and returns values of circuit's outputs. `inputs` are
+    /// Evaluate circuit and returns values of circuit outputs. `inputs` are
     /// object represents iterator of inputs and length should be equal to
     /// number of circuit's number.
     pub fn eval<Out>(&self, inputs: impl IntoIterator<Item = Out>) -> Vec<Out>
@@ -1646,7 +1646,7 @@ impl<T: Clone + Copy + FromStr> FromStr for Clause<T> {
 ///
 /// Similary, the clause circuit defined by input length (number),
 /// clauses and outputs that are defined by wire and negation.
-/// If wire index is index of circuit's input or gate's output.
+/// If wire index is index of circuit input or gate's output.
 /// The input of circuit starts from 0. The output of gate starts from input length number.
 /// The circuit can be constructed from gates satisfied following constraints:
 /// * All inputs for all clauses and output wires are correct types
@@ -2501,8 +2501,8 @@ impl Display for Quant {
 
 /// Derive of [Circuit] with quantifier list.
 ///
-/// Derive of [Circuit]. The object provides additional quantifier list for circuit's inputs.
-/// Length of quantifiers should be equal to number of circuit's inputs.
+/// Derive of [Circuit]. The object provides additional quantifier list for circuit inputs.
+/// Length of quantifiers should be equal to number of circuit inputs.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QuantCircuit<T: Clone + Copy> {
     quants: Vec<Quant>,
@@ -2702,8 +2702,8 @@ where
 
 /// Derive of [ClauseCircuit] with quantifier list.
 ///
-/// Derive of [ClauseCircuit]. The object provides additional quantifier list for circuit's inputs.
-/// Length of quantifiers should be equal to number of circuit's inputs.
+/// Derive of [ClauseCircuit]. The object provides additional quantifier list for circuit inputs.
+/// Length of quantifiers should be equal to number of circuit inputs.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QuantClauseCircuit<T: Clone + Copy> {
     quants: Vec<Quant>,
