@@ -16,7 +16,7 @@ The type of circuit is parametrized by type of wire index. It can be unsigned in
 for example `u32`.
 
 The circuit defined by input length (number), gates and outputs that are defined by
-wire and negation. If wire index is index of circuit input or index of gate's output.
+wire and negation. If wire index is index of circuit input or index of gate output.
 The input of circuit starts from 0. The output of gate starts from input length number.
 The circuit can be constructed from gates satisfied following constraints:
 * All inputs for all gates and output wires are correct types
@@ -34,7 +34,7 @@ negated or not). The are two clause types:
 
 Similary, the clause circuit defined by input length (number),
 clauses and outputs that are defined by wire and negation.
-If wire index is index of circuit input or gate's output.
+If wire index is index of circuit input or gate output.
 The input of circuit starts from 0. The output of gate starts from input length number.
 The circuit can be constructed from gates satisfied following constraints:
 * All inputs for all clauses and output wires are correct types

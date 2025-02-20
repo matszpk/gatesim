@@ -15,7 +15,7 @@
 //! for example `u32`.
 //!
 //! The circuit defined by input length (number), gates and outputs that are defined by
-//! wire and negation. If wire index is index of circuit input or index of gate's output.
+//! wire and negation. If wire index is index of circuit input or index of gate output.
 //! The input of circuit starts from 0. The output of gate starts from input length number.
 //! The circuit can be constructed from gates satisfied following constraints:
 //! * All inputs for all gates and output wires are correct types
@@ -33,7 +33,7 @@
 //!
 //! Similary, the clause circuit defined by input length (number),
 //! clauses and outputs that are defined by wire and negation.
-//! If wire index is index of circuit input or gate's output.
+//! If wire index is index of circuit input or gate output.
 //! The input of circuit starts from 0. The output of gate starts from input length number.
 //! The circuit can be constructed from gates satisfied following constraints:
 //! * All inputs for all clauses and output wires are correct types
@@ -459,7 +459,7 @@ where
 /// * 'xor' - XOR gate that return true if inputs are different.
 ///
 /// The circuit defined by input length (number), gates and outputs that are defined by
-/// wire and negation. If wire index is index of circuit input or index of gate's output.
+/// wire and negation. If wire index is index of circuit input or index of gate output.
 /// The input of circuit starts from 0. The output of gate starts from input length number.
 /// The circuit can be constructed from gates satisfied following constraints:
 /// * All inputs for all gates and output wires are correct types
@@ -1002,7 +1002,7 @@ where
     /// Evaluate gates results (without output negations). This function returns ONLY
     /// outputs of gates. It doesn't returns values of circuit outputs.
     /// `wire_outputs` are mutable slice of wires in circuits - they are circuit inputs and
-    /// all gate's outputs. Length of slice should match to sum of circuit's number and
+    /// all gate outputs. Length of slice should match to sum of circuit's number and
     /// number of circuit's gates.
     pub fn eval_to<Out>(&self, wire_outputs: &mut [Out])
     where
@@ -1646,7 +1646,7 @@ impl<T: Clone + Copy + FromStr> FromStr for Clause<T> {
 ///
 /// Similary, the clause circuit defined by input length (number),
 /// clauses and outputs that are defined by wire and negation.
-/// If wire index is index of circuit input or gate's output.
+/// If wire index is index of circuit input or gate output.
 /// The input of circuit starts from 0. The output of gate starts from input length number.
 /// The circuit can be constructed from gates satisfied following constraints:
 /// * All inputs for all clauses and output wires are correct types
