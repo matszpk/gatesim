@@ -496,6 +496,14 @@ impl<T: Clone + Copy> Circuit<T> {
         &mut self.outputs
     }
 
+    /// It sets negations of outputs. If no more negations then sets no negation to outputs.
+    pub fn set_outputs_negs<I: IntoIterator<Item = bool>>(&mut self, it: I) {
+        let mut nit = it.into_iter().fuse();
+        for (_, n) in self.outputs.iter_mut() {
+            *n = nit.next().unwrap_or(false);
+        }
+    }
+
     /// It returns length of circuit input (circuit input length).
     pub fn input_len(&self) -> T {
         self.input_len
@@ -1680,6 +1688,14 @@ impl<T: Clone + Copy> ClauseCircuit<T> {
     /// It returns outputs as mutable slice (for modificiation).
     pub unsafe fn outputs_mut(&mut self) -> &mut [(T, bool)] {
         &mut self.outputs
+    }
+
+    /// It sets negations of outputs. If no more negations then sets no negation to outputs.
+    pub fn set_outputs_negs<I: IntoIterator<Item = bool>>(&mut self, it: I) {
+        let mut nit = it.into_iter().fuse();
+        for (_, n) in self.outputs.iter_mut() {
+            *n = nit.next().unwrap_or(false);
+        }
     }
 
     /// It returns length of circuit input (circuit’s input length).

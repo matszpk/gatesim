@@ -196,6 +196,28 @@ fn test_circuit_new() {
 }
 
 #[test]
+fn test_circuit_outputs_negs() {
+    let mut circuit = Circuit::new(
+        3,
+        [
+            Gate::new_xor(0, 1),
+            Gate::new_xor(1, 2),
+            Gate::new_xor(0, 4),
+        ],
+        [(3, false), (5, false)],
+    )
+    .unwrap();
+    circuit.set_outputs_negs([false, true]);
+    assert_eq!(vec![(3, false), (5, true)], circuit.outputs().to_vec());
+    circuit.set_outputs_negs([true, false]);
+    assert_eq!(vec![(3, true), (5, false)], circuit.outputs().to_vec());
+    circuit.set_outputs_negs([true, true]);
+    assert_eq!(vec![(3, true), (5, true)], circuit.outputs().to_vec());
+    circuit.set_outputs_negs([true]);
+    assert_eq!(vec![(3, true), (5, false)], circuit.outputs().to_vec());
+}
+
+#[test]
 fn circuit_eval() {
     let circuit = Circuit::new(
         3,
@@ -801,6 +823,27 @@ fn test_clause_circuit_new() {
     assert!(ClauseCircuit::new(1, [], [(0, false)]).is_some());
     assert!(ClauseCircuit::new(2, [], [(0, false), (1, true)]).is_some());
     assert!(ClauseCircuit::new(0, [], []).is_some());
+}
+
+#[test]
+fn test_clause_circuit_outputs_negs() {
+    let mut circuit = ClauseCircuit::new(
+        3,
+        [
+            Clause::new_xor([(0, false), (1, false)]),
+            Clause::new_xor([(2, false), (3, false)]),
+        ],
+        [(3, false), (4, false)],
+    )
+    .unwrap();
+    circuit.set_outputs_negs([false, true]);
+    assert_eq!(vec![(3, false), (4, true)], circuit.outputs().to_vec());
+    circuit.set_outputs_negs([true, false]);
+    assert_eq!(vec![(3, true), (4, false)], circuit.outputs().to_vec());
+    circuit.set_outputs_negs([true, true]);
+    assert_eq!(vec![(3, true), (4, true)], circuit.outputs().to_vec());
+    circuit.set_outputs_negs([true]);
+    assert_eq!(vec![(3, true), (4, false)], circuit.outputs().to_vec());
 }
 
 #[test]
