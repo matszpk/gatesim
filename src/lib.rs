@@ -496,6 +496,11 @@ impl<T: Clone + Copy> Circuit<T> {
         &mut self.outputs
     }
 
+    /// It set circuit outputs.
+    pub unsafe fn set_outputs(&mut self, outputs: impl IntoIterator<Item = (T, bool)>) {
+        self.outputs = outputs.into_iter().collect::<Vec<_>>();
+    }
+
     /// It sets negations of outputs. If no more negations then sets no negation to outputs.
     pub fn set_outputs_negs<I: IntoIterator<Item = bool>>(&mut self, it: I) {
         let mut nit = it.into_iter().fuse();
@@ -1688,6 +1693,11 @@ impl<T: Clone + Copy> ClauseCircuit<T> {
     /// It returns outputs as mutable slice (for modificiation).
     pub unsafe fn outputs_mut(&mut self) -> &mut [(T, bool)] {
         &mut self.outputs
+    }
+
+    /// It set circuit outputs.
+    pub unsafe fn set_outputs(&mut self, outputs: impl IntoIterator<Item = (T, bool)>) {
+        self.outputs = outputs.into_iter().collect::<Vec<_>>();
     }
 
     /// It sets negations of outputs. If no more negations then sets no negation to outputs.
